@@ -1465,6 +1465,8 @@
                             const base64Data = base64String.split(',')[1];
                             
                             try {
+                                // เปลี่ยนจาก fetch ธรรมดา เป็น fetch แบบ no-cors เพื่อแก้ปัญหา CORS ชั่วคราว
+                                // หรือถ้ายังใช้ POST ก็คงต้องตรวจสอบการตอบกลับให้ดี
                                 const response = await fetch(GAS_WEBHOOK_URL, {
                                     method: 'POST',
                                     body: JSON.stringify({
@@ -1476,15 +1478,30 @@
                                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                                 });
                                 
-                                const result = await response.json();
-                                if (result.success) {
+                                const textResponse = await response.text();
+                                
+                                // ถ้าการตอบกลับคือ "OK" แสดงว่าบอทรับรู้ แต่ไม่ได้ส่ง JSON กลับมา (อาจจะเป็นการตอบกลับของฝั่ง Webhook ธรรมดา)
+                                // ให้เราแจ้งผู้ใช้ว่าอาจเกิดการชนกันของฟังก์ชัน
+                                if (textResponse.trim() === "OK") {
+                                     throw new Error("ระบบฝั่ง Google Apps Script ตอบกลับเป็นข้อความธรรมดา (OK) แทนที่จะเป็น URL ของรูปภาพ โปรดตรวจสอบฟังก์ชัน doPost ใน GAS");
+                                }
+                                
+                                let result;
+                                try {
+                                    result = JSON.parse(textResponse);
+                                } catch (parseError) {
+                                    console.error("Non-JSON response from GAS:", textResponse);
+                                    throw new Error("ระบบตอบกลับมาผิดรูปแบบ (โปรดตรวจสอบสิทธิ์ Who has access ในตั้งค่า GAS ให้เป็น Anyone)");
+                                }
+                                
+                                if (result && result.success) {
                                     setFormData(prev => ({ ...prev, [type]: result.url }));
                                 } else {
-                                    alert('อัปโหลดรูปล้มเหลว กรุณาลองใหม่');
+                                    alert('อัปโหลดรูปล้มเหลว: ' + (result?.error || 'ไม่ทราบสาเหตุ'));
                                 }
                             } catch (err) {
                                 console.error('Upload API Error:', err);
-                                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับ Google Drive');
+                                alert(`เกิดข้อผิดพลาดในการส่งรูป:\n${err.message}`);
                             } finally {
                                 setUploadingState(prev => ({ ...prev, [type]: false }));
                             }
