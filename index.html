@@ -104,11 +104,19 @@
         const APP_USERS = {
             'admin':       { pass: 'admin1234', role: 'admin', filterName: 'admin', displayName: 'Administrator' },
             'arttapon.j':  { pass: 'arttapon.j1234', role: 'user', filterName: 'arttapon', displayName: 'Arttapon.J' },
-            'kittipoom.b': { pass: 'kittipoom.b1234', role: 'user', filterName: 'kittipoom', displayName: 'Kittipoom.B' },
+            'kittipoom.p': { pass: 'kittipoom.p1234', role: 'user', filterName: 'kittipoom', displayName: 'Kittipoom.P' },
             'amnat.s':     { pass: 'amnat.s1234', role: 'user', filterName: 'amnat', displayName: 'Amnat.S' },
             'phanuwat.p':  { pass: 'phanuwat.p1234', role: 'user', filterName: 'phanuwat', displayName: 'Phanuwat.P' },
             'noppadol.m':  { pass: 'noppadol.m1234', role: 'user', filterName: 'noppadol', displayName: 'Noppadol.M' },
             'nattawut.p':  { pass: 'nattawut.p1234', role: 'user', filterName: 'nattawut', displayName: 'Nattawut.P' }
+        };
+
+        // 🌟 ย้ายฟังก์ชันแปลงเดือนออกมาด้านนอก เพื่อให้ใช้ร่วมกันได้ทุกหน้า
+        const formatMonth = (YYYYMM) => {
+            if (!YYYYMM) return 'ทั้งหมด';
+            const [year, month] = YYYYMM.split('-');
+            const date = new Date(year, month - 1);
+            return date.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
         };
 
         // 🌟 ฟังก์ชันแปลงลิงก์ Google Drive ให้แสดงรูปได้ 100% (Bypass รูปแตก)
@@ -135,7 +143,16 @@
             const [records, setRecords] = useState([]);
             const [showForm, setShowForm] = useState(false);
             const [editingRecord, setEditingRecord] = useState(null);
-            const [dashboardMonth, setDashboardMonth] = useState(''); 
+            
+            // 🌟 แก้ไข: ตั้งค่าเดือนปัจจุบันเป็นค่าเริ่มต้น และใช้สถานะนี้ร่วมกันทุกหน้า
+            const [selectedMonth, setSelectedMonth] = useState(() => {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            }); 
+            
+            // 🌟 เพิ่มสถานะสำหรับเก็บค่าตัวกรองพนักงาน (เฉพาะ Admin)
+            const [selectedUserFilter, setSelectedUserFilter] = useState('');
+            
             const [recordToDelete, setRecordToDelete] = useState(null); 
             const [showChangePassword, setShowChangePassword] = useState(false); 
             
@@ -216,20 +233,34 @@
                 const d = new Date(r.createdAt || Date.now());
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             }))].sort().reverse();
+            
+            // 🌟 เพิ่มเดือนปัจจุบันเข้าไปในตัวเลือกเสมอ (เผื่อยังไม่มีงานในเดือนนี้)
+            const currentYYYYMM = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+            if (!availableMonths.includes(currentYYYYMM)) {
+                availableMonths.unshift(currentYYYYMM);
+                availableMonths.sort().reverse();
+            }
 
-            const dashboardRecords = dashboardMonth 
-                ? records.filter(r => {
-                    const d = new Date(r.createdAt || Date.now());
-                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === dashboardMonth;
-                })
-                : records;
+            // 🌟 เปลี่ยนให้ตัวกรองเดือนนี้ ส่งผลกระทบกับ "ทุกหน้า" ไม่ใช่แค่หน้า Dashboard
+            // 🌟 และเพิ่มการกรองตามพนักงาน (สำหรับ Admin)
+            const filteredRecords = sortedRecords.filter(r => {
+                const d = new Date(r.createdAt || Date.now());
+                const monthMatch = selectedMonth ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth : true;
+                
+                let userMatch = true;
+                if (loggedInUser.role === 'admin' && selectedUserFilter) {
+                    userMatch = r.responsible && r.responsible.toLowerCase().includes(selectedUserFilter.toLowerCase());
+                }
 
-            const shortCount = dashboardRecords.filter(r => r.jobType?.includes('Short')).length;
-            const mediumCount = dashboardRecords.filter(r => r.jobType?.includes('Medium')).length;
-            const longCount = dashboardRecords.filter(r => r.jobType?.includes('Long')).length;
+                return monthMatch && userMatch;
+            });
+
+            const shortCount = filteredRecords.filter(r => r.jobType?.includes('Short')).length;
+            const mediumCount = filteredRecords.filter(r => r.jobType?.includes('Medium')).length;
+            const longCount = filteredRecords.filter(r => r.jobType?.includes('Long')).length;
 
             const stats = {
-                totalJobs: dashboardRecords.length,
+                totalJobs: filteredRecords.length,
                 shortPeriod: shortCount,
                 mediumPeriod: mediumCount,
                 longPeriod: longCount,
@@ -383,16 +414,36 @@
                     {activeTab === 'dashboard' && (
                         <Dashboard 
                             stats={stats} 
-                            recentRecords={sortedRecords.slice(0, 3)} 
+                            recentRecords={filteredRecords.slice(0, 3)} 
                             onSetTab={setActiveTab} 
-                            selectedMonth={dashboardMonth}
-                            setSelectedMonth={setDashboardMonth}
+                            selectedMonth={selectedMonth}
+                            setSelectedMonth={setSelectedMonth}
                             availableMonths={availableMonths}
                             dbStatus={dbStatus}
+                            loggedInUser={loggedInUser}
+                            selectedUserFilter={selectedUserFilter}
+                            setSelectedUserFilter={setSelectedUserFilter}
                         />
                     )}
-                    {activeTab === 'history' && <HistoryList records={sortedRecords} onDelete={requestDelete} onEdit={handleEditRecord} />}
-                    {activeTab === 'reports' && <Reports records={records} getSortValue={getSortValue} />}
+                    {activeTab === 'history' && (
+                        <HistoryList 
+                            records={filteredRecords} 
+                            onDelete={requestDelete} 
+                            onEdit={handleEditRecord}
+                            selectedMonth={selectedMonth}
+                            setSelectedMonth={setSelectedMonth}
+                            availableMonths={availableMonths} 
+                        />
+                    )}
+                    {activeTab === 'reports' && (
+                        <Reports 
+                            records={filteredRecords} 
+                            getSortValue={getSortValue} 
+                            selectedMonth={selectedMonth}
+                            setSelectedMonth={setSelectedMonth}
+                            availableMonths={availableMonths}
+                        />
+                    )}
                     </div>
                 </main>
 
@@ -697,7 +748,7 @@
             );
         }
 
-        function Dashboard({ stats, recentRecords, onSetTab, selectedMonth, setSelectedMonth, availableMonths, dbStatus }) {
+        function Dashboard({ stats, recentRecords, onSetTab, selectedMonth, setSelectedMonth, availableMonths, dbStatus, loggedInUser, selectedUserFilter, setSelectedUserFilter }) {
             const formatMonth = (YYYYMM) => {
                 const [year, month] = YYYYMM.split('-');
                 const date = new Date(year, month - 1);
@@ -726,16 +777,31 @@
                     <h3 className="font-bold text-slate-800">สรุปข้อมูลปฏิบัติงาน</h3>
                     <p className="text-xs text-slate-500">ภาพรวมงานทั้งหมดที่ปรากฎในบัญชีของคุณ</p>
                     </div>
-                    <select 
-                        value={selectedMonth}
-                        onChange={e => setSelectedMonth(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer min-w-[200px]"
-                    >
-                        <option value="">ทั้งหมด (All Time)</option>
-                        {availableMonths.map(m => (
-                            <option key={m} value={m}>{formatMonth(m)}</option>
-                        ))}
-                    </select>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        {/* 🌟 เพิ่ม Dropdown เลือกพนักงาน (แสดงเฉพาะ Admin) */}
+                        {loggedInUser?.role === 'admin' && (
+                            <select 
+                                value={selectedUserFilter}
+                                onChange={e => setSelectedUserFilter(e.target.value)}
+                                className="bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer min-w-[150px]"
+                            >
+                                <option value="">บุคลากรทั้งหมด</option>
+                                {Object.values(APP_USERS).filter(u => u.role !== 'admin').map(u => (
+                                    <option key={u.filterName} value={u.filterName}>{u.displayName}</option>
+                                ))}
+                            </select>
+                        )}
+                        <select 
+                            value={selectedMonth}
+                            onChange={e => setSelectedMonth(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer min-w-[150px]"
+                        >
+                            <option value="">ทั้งหมด (All Time)</option>
+                            {availableMonths.map(m => (
+                                <option key={m} value={m}>{formatMonth(m)}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -833,22 +899,33 @@
             );
         }
 
-        function HistoryList({ records, onDelete, onEdit }) {
+        function HistoryList({ records, onDelete, onEdit, selectedMonth, setSelectedMonth, availableMonths }) {
             return (
                 <div className="space-y-6 animate-in fade-in duration-500">
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                    <div className="relative w-full md:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="ค้นหางาน หรือ สถานที่..." 
-                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium"
-                    />
+                <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-2">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="p-2 bg-orange-100 text-orange-600 rounded-lg hidden sm:block shadow-sm">
+                            <Calendar size={20} />
+                        </div>
+                        <select 
+                            value={selectedMonth}
+                            onChange={e => setSelectedMonth(e.target.value)}
+                            className="w-full sm:w-auto bg-white border border-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer shadow-sm"
+                        >
+                            <option value="">ทั้งหมด (All Time)</option>
+                            {availableMonths.map(m => (
+                                <option key={m} value={m}>ประจำเดือน: {formatMonth(m)}</option>
+                            ))}
+                        </select>
                     </div>
-                    <div className="flex items-center gap-2">
-                    <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-orange-500 transition-colors">
-                        <Filter size={14} /> ตัวกรอง
-                    </button>
+                    
+                    <div className="relative w-full sm:w-64 hidden md:block">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input 
+                            type="text" 
+                            placeholder="ค้นหางาน หรือ สถานที่..." 
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium shadow-sm"
+                        />
                     </div>
                 </div>
 
@@ -872,7 +949,7 @@
                             return (
                             <tr key={record.id} className="hover:bg-orange-50/50 transition-colors">
                                 <td className="px-6 py-4">
-                                <div className="font-bold text-slate-800 line-clamp-1">{record.interruption}</div>
+                                <div className="font-bold text-slate-800 break-words whitespace-pre-wrap">{record.interruption}</div>
                                 <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-1">
                                     <span className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded uppercase font-bold text-slate-600">{record.jobType?.split('(')[1]?.replace(')', '') || record.jobType}</span>
                                     <span className="font-medium">ID: {record.interruptionId || '-'}</span>
@@ -883,9 +960,9 @@
                                 <div className="text-xs text-slate-400 font-medium">{record.time}</div>
                                 </td>
                                 <td className="px-6 py-4">
-                                <div className="flex items-center gap-2">
-                                    <Users size={14} className="text-slate-400" />
-                                    <span className="text-slate-600 font-medium truncate max-w-[150px]">{record.responsible}</span>
+                                <div className="flex items-start gap-2">
+                                    <Users size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                                    <span className="text-slate-600 font-medium break-words">{record.responsible}</span>
                                 </div>
                                 </td>
                                 <td className="px-6 py-4 text-center">
@@ -927,7 +1004,7 @@
                         {records.length === 0 && (
                             <tr>
                             <td colSpan="5" className="px-6 py-12 text-center text-slate-400 italic font-medium">
-                                ไม่พบรายการข้อมูลในบัญชีของคุณ
+                                {selectedMonth ? `ไม่พบรายการปฏิบัติงานในเดือน ${formatMonth(selectedMonth)}` : 'ไม่พบรายการข้อมูลในบัญชีของคุณ'}
                             </td>
                             </tr>
                         )}
@@ -939,7 +1016,7 @@
             );
         }
 
-        function Reports({ records, getSortValue }) {
+        function Reports({ records, getSortValue, selectedMonth, setSelectedMonth, availableMonths }) {
             const [showPreview, setShowPreview] = useState(false);
             const [isExportingExcel, setIsExportingExcel] = useState(false);
             const [exportProgress, setExportProgress] = useState('');
@@ -961,7 +1038,7 @@
 
                     worksheet.mergeCells('A1:E1');
                     const titleCell = worksheet.getCell('A1');
-                    titleCell.value = 'รายละเอียดปฏิบัติงานเบิกค่าล่วงเวลา (OT )';
+                    titleCell.value = selectedMonth ? `รายละเอียดปฏิบัติงานเบิกค่าล่วงเวลา (OT ) ประจำเดือน ${formatMonth(selectedMonth)}` : 'รายละเอียดปฏิบัติงานเบิกค่าล่วงเวลา (OT )';
                     titleCell.font = { name: 'Tahoma', size: 14, bold: true };
                     titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
                     
@@ -1059,7 +1136,7 @@
                     const link = document.createElement("a");
                     const url = URL.createObjectURL(blob);
                     link.setAttribute("href", url);
-                    link.setAttribute("download", `OT_Report_${new Date().toLocaleString('default', { month: 'short', year: 'numeric' })}.xlsx`);
+                    link.setAttribute("download", `OT_Report_${selectedMonth || 'All_Time'}_${new Date().getTime()}.xlsx`);
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
@@ -1085,6 +1162,20 @@
                         </p>
                     </div>
                     
+                    {/* 🌟 เพิ่มตัวเลือกเดือนในหน้า Report */}
+                    <div className="flex justify-center mt-2 mb-4">
+                        <select 
+                            value={selectedMonth}
+                            onChange={e => setSelectedMonth(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 font-bold py-2.5 px-5 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all cursor-pointer min-w-[250px] text-center shadow-sm"
+                        >
+                            <option value="">ข้อมูลทั้งหมด (All Time)</option>
+                            {availableMonths.map(m => (
+                                <option key={m} value={m}>ประจำเดือน: {formatMonth(m)}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                     <button 
                         onClick={() => setShowPreview(true)}
@@ -1095,7 +1186,7 @@
                     </div>
                     
                     {records.length === 0 && (
-                        <p className="text-xs text-orange-500 font-bold">! ไม่พบข้อมูลของคุณในระบบ (ต้องมีอย่างน้อย 1 รายการ)</p>
+                        <p className="text-xs text-orange-500 font-bold">! {selectedMonth ? `ไม่พบข้อมูลของเดือน ${formatMonth(selectedMonth)}` : 'ไม่พบข้อมูลของคุณในระบบ (ต้องมีอย่างน้อย 1 รายการ)'}</p>
                     )}
                 </div>
 
@@ -1107,13 +1198,14 @@
                         onExportExcel={handleExportExcel}
                         isExportingExcel={isExportingExcel} 
                         exportProgress={exportProgress}
+                        selectedMonth={selectedMonth}
                     />
                 )}
                 </div>
             );
         }
 
-        function ReportPreviewModal({ records, getSortValue, onClose, onExportExcel, isExportingExcel, exportProgress }) {
+        function ReportPreviewModal({ records, getSortValue, onClose, onExportExcel, isExportingExcel, exportProgress, selectedMonth }) {
             const [isPrinting, setIsPrinting] = useState(false);
 
             const handlePrint = () => {
@@ -1196,22 +1288,22 @@
                             >
                                 <table className="w-full table-fixed border-collapse border border-slate-400 text-[12px] text-slate-800 leading-relaxed">
                                     <colgroup>
-                                        <col style={{ width: '5%' }} />
-                                        <col style={{ width: '18%' }} />
-                                        <col style={{ width: '37%' }} />
-                                        <col style={{ width: '20%' }} />
-                                        <col style={{ width: '20%' }} />
-                                    </colgroup>
-                                    <thead>
-                                        <tr>
-                                            <td colSpan="5" className="font-bold text-[16px] pb-4 border-none px-2 text-center md:text-left">
-                                                รายละเอียดปฏิบัติงานเบิกค่าล่วงเวลา (OT )
-                                            </td>
-                                        </tr>
-                                    </thead>
-                                    
-                                    {sortedRecords.length > 0 ? sortedRecords.map((record, index) => {
-                                        const i = index + 1;
+                                <col style={{ width: '5%' }} />
+                                <col style={{ width: '18%' }} />
+                                <col style={{ width: '37%' }} />
+                                <col style={{ width: '20%' }} />
+                                <col style={{ width: '20%' }} />
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <td colSpan="5" className="font-bold text-[16px] pb-4 border-none px-2 text-center md:text-left">
+                                        รายละเอียดปฏิบัติงานเบิกค่าล่วงเวลา (OT ) {selectedMonth ? `ประจำเดือน ${formatMonth(selectedMonth)}` : ''}
+                                    </td>
+                                </tr>
+                            </thead>
+                            
+                            {sortedRecords.length > 0 ? sortedRecords.map((record, index) => {
+                                const i = index + 1;
                                         return (
                                             <tbody key={record.id}>
                                                 <tr className="bg-slate-50">
