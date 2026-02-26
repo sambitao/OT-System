@@ -111,6 +111,20 @@
             'nattawut.p':  { pass: 'nattawut.p1234', role: 'user', filterName: 'nattawut', displayName: 'Nattawut.P' }
         };
 
+        // 🌟 ฟังก์ชันแปลงลิงก์ Google Drive ให้แสดงรูปได้ 100% (Bypass รูปแตก)
+        const getDisplayImageUrl = (url) => {
+            if (!url) return '';
+            try {
+                if (url.includes('drive.google.com/uc?id=')) {
+                    const id = new URL(url).searchParams.get('id');
+                    if(id) return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+                }
+            } catch(e) {
+                console.error("URL Parsing error", e);
+            }
+            return url;
+        };
+
         function App() {
             const [loggedInUser, setLoggedInUser] = useState(() => {
                 const saved = localStorage.getItem('ot_user');
@@ -1213,7 +1227,7 @@
                                                     <td className="border border-slate-400 p-1 text-center align-middle" rowSpan="7">
                                                         {record.beforeImage ? (
                                                             <div className="flex justify-center items-center h-full min-h-[90px]">
-                                                                <img src={record.beforeImage} alt="Before" className="max-h-[110px] max-w-full object-contain rounded-sm" />
+                                                                <img src={getDisplayImageUrl(record.beforeImage)} alt="Before" className="max-h-[110px] max-w-full object-contain rounded-sm" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/110x90?text=Image+Blocked'; }} />
                                                             </div>
                                                         ) : (
                                                             <div className="flex flex-col items-center justify-center text-slate-300 min-h-[90px]">
@@ -1225,7 +1239,7 @@
                                                     <td className="border border-slate-400 p-1 text-center align-middle" rowSpan="7">
                                                         {record.afterImage ? (
                                                             <div className="flex justify-center items-center h-full min-h-[90px]">
-                                                                <img src={record.afterImage} alt="After" className="max-h-[110px] max-w-full object-contain rounded-sm" />
+                                                                <img src={getDisplayImageUrl(record.afterImage)} alt="After" className="max-h-[110px] max-w-full object-contain rounded-sm" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/110x90?text=Image+Blocked'; }} />
                                                             </div>
                                                         ) : (
                                                             <div className="flex flex-col items-center justify-center text-slate-300 min-h-[90px]">
@@ -1467,10 +1481,9 @@
                             const base64Data = base64String.split(',')[1];
                             
                             try {
-                                // 🌟 แก้ไข: เพิ่มการตั้งค่าเพื่อพยายามหลบเลี่ยงปัญหาการโดนบล็อก (CORS)
                                 const response = await fetch(GAS_WEBHOOK_URL, {
                                     method: 'POST',
-                                    redirect: 'follow', // บังคับให้ตาม Redirect ของ Google
+                                    redirect: 'follow', 
                                     body: JSON.stringify({
                                         action: 'upload_image',
                                         filename: `OT_${type}_${Date.now()}.jpg`,
@@ -1478,7 +1491,7 @@
                                         base64: base64Data
                                     }),
                                     headers: { 
-                                        'Content-Type': 'text/plain;charset=utf-8' // ต้องใช้ text/plain เพื่อไม่ให้ติด Preflight CORS
+                                        'Content-Type': 'text/plain;charset=utf-8'
                                     }
                                 });
                                 
@@ -1503,7 +1516,6 @@
                                 }
                             } catch (err) {
                                 console.error('Upload API Error:', err);
-                                // 🌟 แก้ไข: ดักจับ Failed to fetch เพื่อบอกวิธีแก้ปัญหาให้ตรงจุด
                                 if (err.message.includes('Failed to fetch')) {
                                     alert(`🚨 การส่งรูปถูกบล็อก (Failed to fetch)\n\nวิธีแก้ไข (ทำที่หน้าเว็บ Google Apps Script):\n1. มุมขวาบน กดปุ่มสีน้ำเงิน 'การทำให้ใช้งานได้' (Deploy)\n2. เลือก 'จัดการการทำให้ใช้งานได้' (Manage deployments)\n3. กดรูป ✏️ ดินสอแก้ไข\n4. สำคัญที่สุด! ตรง 'ผู้มีสิทธิ์เข้าถึง (Who has access)' ต้องเลือกเป็น "ทุกคน (Anyone)" เท่านั้น\n5. กดอัปเดตเวอร์ชันใหม่ แล้วก๊อปปี้ URL (ที่ลงท้ายด้วย /exec) มาใส่ในหน้าเว็บอีกครั้งครับ`);
                                 } else {
@@ -1712,7 +1724,7 @@
                                 </div>
                             ) : formData.beforeImage ? (
                                 <>
-                                <img src={formData.beforeImage} alt="Before" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                                <img src={getDisplayImageUrl(formData.beforeImage)} alt="Before" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/400x300?text=Image+Blocked'; }} />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white z-0">
                                     <Upload size={20} className="mb-1" />
                                     <span className="text-[10px] font-bold">เปลี่ยนรูป</span>
@@ -1735,7 +1747,7 @@
                                 </div>
                             ) : formData.afterImage ? (
                                 <>
-                                <img src={formData.afterImage} alt="After" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                                <img src={getDisplayImageUrl(formData.afterImage)} alt="After" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/400x300?text=Image+Blocked'; }} />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white z-0">
                                     <Upload size={20} className="mb-1" />
                                     <span className="text-[10px] font-bold">เปลี่ยนรูป</span>
