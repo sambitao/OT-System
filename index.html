@@ -141,6 +141,8 @@
 
             const [activeTab, setActiveTab] = useState('dashboard');
             const [records, setRecords] = useState([]);
+            // 🌟 เพิ่มสถานะสำหรับเก็บข้อมูลทั้งหมดเพื่อใช้ในการดึงรายชื่อผู้ร่วมงาน
+            const [allRecords, setAllRecords] = useState([]);
             const [showForm, setShowForm] = useState(false);
             const [editingRecord, setEditingRecord] = useState(null);
             
@@ -168,6 +170,7 @@
                 setLoggedInUser(null);
                 localStorage.removeItem('ot_user');
                 setRecords([]);
+                setAllRecords([]);
             };
 
             useEffect(() => {
@@ -197,6 +200,8 @@
                 
                 const unsubscribeData = onSnapshot(recordsRef, (snapshot) => {
                     let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // 🌟 เก็บข้อมูลทั้งหมดไว้ก่อนโดนฟิลเตอร์ เพื่อใช้หารายชื่อผู้ร่วมงาน
+                    setAllRecords(data);
                     
                     if (loggedInUser.role !== 'admin') {
                         data = data.filter(r => 
@@ -275,8 +280,10 @@
                 if (dbStatus === 'local_only' || !user) {
                     if (editingRecord) {
                         setRecords(records.map(r => r.id === editingRecord.id ? { ...newRecord, id: r.id, createdAt: r.createdAt } : r));
+                        setAllRecords(allRecords.map(r => r.id === editingRecord.id ? { ...newRecord, id: r.id, createdAt: r.createdAt } : r));
                     } else {
                         setRecords([{ ...newRecord, id: Date.now().toString(), createdAt: new Date().toISOString() }, ...records]);
+                        setAllRecords([{ ...newRecord, id: Date.now().toString(), createdAt: new Date().toISOString() }, ...allRecords]);
                     }
                     return;
                 }
@@ -433,6 +440,7 @@
                             selectedMonth={selectedMonth}
                             setSelectedMonth={setSelectedMonth}
                             availableMonths={availableMonths} 
+                            allRecords={allRecords}
                         />
                     )}
                     {activeTab === 'reports' && (
@@ -442,6 +450,7 @@
                             selectedMonth={selectedMonth}
                             setSelectedMonth={setSelectedMonth}
                             availableMonths={availableMonths}
+                            allRecords={allRecords}
                         />
                     )}
                     </div>
@@ -467,6 +476,7 @@
                         onClose={() => { setShowForm(false); setEditingRecord(null); }} 
                         initialData={editingRecord}
                         loggedInUser={loggedInUser} 
+                        allRecords={allRecords}
                     />
                 )}
 
@@ -899,7 +909,7 @@
             );
         }
 
-        function HistoryList({ records, onDelete, onEdit, selectedMonth, setSelectedMonth, availableMonths }) {
+        function HistoryList({ records, onDelete, onEdit, selectedMonth, setSelectedMonth, availableMonths, allRecords }) {
             return (
                 <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-2">
@@ -946,6 +956,17 @@
                             const hasBothImages = record.beforeImage && record.afterImage;
                             const hasOneImage = record.beforeImage || record.afterImage;
 
+                            // 🌟 ค้นหารายชื่อผู้ร่วมงานทั้งหมดในรหัสงานเดียวกัน
+                            let displayResponsible = record.responsible;
+                            if (allRecords && record.interruptionId && record.interruptionId !== '-') {
+                                const coworkers = allRecords
+                                    .filter(r => r.interruptionId === record.interruptionId)
+                                    .map(r => r.responsible);
+                                if (coworkers.length > 0) {
+                                    displayResponsible = [...new Set(coworkers)].join(', ');
+                                }
+                            }
+
                             return (
                             <tr key={record.id} className="hover:bg-orange-50/50 transition-colors">
                                 <td className="px-6 py-4">
@@ -962,7 +983,7 @@
                                 <td className="px-6 py-4">
                                 <div className="flex items-start gap-2">
                                     <Users size={14} className="text-slate-400 mt-0.5 shrink-0" />
-                                    <span className="text-slate-600 font-medium break-words">{record.responsible}</span>
+                                    <span className="text-slate-600 font-medium break-words">{displayResponsible}</span>
                                 </div>
                                 </td>
                                 <td className="px-6 py-4 text-center">
@@ -1016,7 +1037,7 @@
             );
         }
 
-        function Reports({ records, getSortValue, selectedMonth, setSelectedMonth, availableMonths }) {
+        function Reports({ records, getSortValue, selectedMonth, setSelectedMonth, availableMonths, allRecords }) {
             const [showPreview, setShowPreview] = useState(false);
             const [isExportingExcel, setIsExportingExcel] = useState(false);
             const [exportProgress, setExportProgress] = useState('');
@@ -1072,6 +1093,17 @@
                         setExportProgress(`กำลังดึงรูปภาพ ${index + 1}/${sortedRecords.length}...`);
                         const i = index + 1;
                         
+                        // 🌟 ค้นหารายชื่อผู้ร่วมงานสำหรับการ Export Excel
+                        let displayResponsible = record.responsible;
+                        if (allRecords && record.interruptionId && record.interruptionId !== '-') {
+                            const coworkers = allRecords
+                                .filter(r => r.interruptionId === record.interruptionId)
+                                .map(r => r.responsible);
+                            if (coworkers.length > 0) {
+                                displayResponsible = [...new Set(coworkers)].join(', ');
+                            }
+                        }
+                        
                         worksheet.addRow([i, 'JOB Type :', record.jobType, 'รูปก่อนทำ', 'รูปหลังทำ']);
                         worksheet.addRow(['', 'Interruption :', record.interruption, '', '']);
                         worksheet.addRow(['', 'Interruption ID :', record.interruptionId || '-', '', '']);
@@ -1079,7 +1111,7 @@
                         worksheet.addRow(['', 'Location :', 'Location: ' + record.location, '', '']);
                         worksheet.addRow(['', 'Date :', 'Date: ' + record.date, '', '']);
                         worksheet.addRow(['', 'Time :', 'Time: ' + record.time, '', '']);
-                        worksheet.addRow(['', 'NSB Responsible :', 'เจ้าหน้าที่ปฏิบัติงาน : ' + record.responsible, '', '']);
+                        worksheet.addRow(['', 'NSB Responsible :', 'เจ้าหน้าที่ปฏิบัติงาน : ' + displayResponsible, '', '']);
                         
                         worksheet.mergeCells(`A${currentRow}:A${currentRow+7}`);
                         worksheet.mergeCells(`D${currentRow+1}:D${currentRow+7}`);
@@ -1199,13 +1231,14 @@
                         isExportingExcel={isExportingExcel} 
                         exportProgress={exportProgress}
                         selectedMonth={selectedMonth}
+                        allRecords={allRecords}
                     />
                 )}
                 </div>
             );
         }
 
-        function ReportPreviewModal({ records, getSortValue, onClose, onExportExcel, isExportingExcel, exportProgress, selectedMonth }) {
+        function ReportPreviewModal({ records, getSortValue, onClose, onExportExcel, isExportingExcel, exportProgress, selectedMonth, allRecords }) {
             const [isPrinting, setIsPrinting] = useState(false);
 
             const handlePrint = () => {
@@ -1304,6 +1337,18 @@
                             
                             {sortedRecords.length > 0 ? sortedRecords.map((record, index) => {
                                 const i = index + 1;
+                                
+                                // 🌟 ค้นหารายชื่อผู้ร่วมงานสำหรับการแสดงในตารางพรีวิว
+                                let displayResponsible = record.responsible;
+                                if (allRecords && record.interruptionId && record.interruptionId !== '-') {
+                                    const coworkers = allRecords
+                                        .filter(r => r.interruptionId === record.interruptionId)
+                                        .map(r => r.responsible);
+                                    if (coworkers.length > 0) {
+                                        displayResponsible = [...new Set(coworkers)].join(', ');
+                                    }
+                                }
+
                                         return (
                                             <tbody key={record.id}>
                                                 <tr className="bg-slate-50">
@@ -1363,7 +1408,7 @@
                                                 </tr>
                                                 <tr>
                                                     <td className="border border-slate-400 p-1.5 font-bold">NSB Responsible :</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words">เจ้าหน้าที่ปฏิบัติงาน : {record.responsible}</td>
+                                                    <td className="border border-slate-400 p-1.5 break-words">เจ้าหน้าที่ปฏิบัติงาน : {displayResponsible}</td>
                                                 </tr>
                                                 <tr>
                                                     <td colSpan="5" className="h-3 border-none"></td>
@@ -1411,7 +1456,7 @@
             );
         }
 
-        function OTForm({ onSave, onClose, initialData, loggedInUser }) {
+        function OTForm({ onSave, onClose, initialData, loggedInUser, allRecords }) {
             const [isSmartPaste, setIsSmartPaste] = useState(false);
             const [isExtracting, setIsExtracting] = useState(false);
             const [rawText, setRawText] = useState('');
@@ -1537,6 +1582,17 @@
                 setIsSmartPaste(false);
                 setRawText('');
             };
+
+            // 🌟 คำนวณรายชื่อเพื่อนร่วมงานทั้งหมด จากรหัสงานเดียวกัน เพื่อแสดงในหน้าฟอร์ม
+            let displayCoworkers = '';
+            if (formData.interruptionId && formData.interruptionId !== '-' && allRecords) {
+                const team = allRecords
+                    .filter(r => r.interruptionId === formData.interruptionId)
+                    .map(r => r.responsible);
+                if (team.length > 0) {
+                    displayCoworkers = [...new Set(team)].join(', ');
+                }
+            }
 
             const handleImageUpload = async (e, type) => {
                 const file = e.target.files[0];
@@ -1799,9 +1855,21 @@
                             value={formData.responsible}
                             onChange={e => setFormData({...formData, responsible: e.target.value})}
                             />
+                            
+                            {/* 🌟 กล่องแสดงรายชื่อทีมงานทั้งหมด */}
+                            {displayCoworkers && (
+                                <div className="mt-2 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-xs text-slate-600 flex items-start gap-2 shadow-sm">
+                                    <Users size={14} className="text-indigo-400 mt-0.5 shrink-0" />
+                                    <div className="font-medium">
+                                        <span className="font-bold text-indigo-700">รายชื่อทีมงานทั้งหมดในงานนี้:</span> 
+                                        <div className="mt-1 text-slate-600 break-words">{displayCoworkers}</div>
+                                    </div>
+                                </div>
+                            )}
+
                             {loggedInUser?.role !== 'admin' && (
-                            <p className="text-[10px] text-orange-500 font-bold ml-1">
-                                * ชื่อนี้จะถูกใช้เป็นเงื่อนไขในการค้นหาและแบ่งบิลงานของคุณ
+                            <p className="text-[10px] text-orange-500 font-bold ml-1 pt-1">
+                                * ชื่อด้านบนจะถูกใช้เป็นเงื่อนไขในการค้นหาและแบ่งบิลงานของคุณ
                             </p>
                             )}
                         </div>
