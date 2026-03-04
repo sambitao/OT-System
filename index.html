@@ -650,6 +650,31 @@
             // เมนูด้านข้าง จะแสดงเมนู "รอการอนุมัติ" ก็ต่อเมื่อมีสิทธิ์เป็น admin, approver1 หรือ approver2
             const showApprovalMenu = loggedInUser.role === 'admin' || loggedInUser.role === 'approver1' || loggedInUser.role === 'approver2';
 
+            // 🌟 คำนวณจำนวนงานที่รออนุมัติ (นับเป็นกลุ่ม/แฟ้ม) เพื่อแสดงเป็น Badge
+            let pendingApprovalCount = 0;
+            if (showApprovalMenu) {
+                const pendingGroups = new Set();
+                allRecords.forEach(r => {
+                    let shouldSee = false;
+                    if (loggedInUser.role === 'admin') {
+                        shouldSee = r.status === 'pending_1' || r.status === 'pending_2';
+                    } else if (loggedInUser.role === 'approver2') {
+                        shouldSee = r.status === 'pending_2';
+                    } else if (loggedInUser.role === 'approver1') {
+                        const recordTeam = getTeamFromResponsible(r.responsible);
+                        if (recordTeam === loggedInUser.approveTeam && r.status === 'pending_1') {
+                            shouldSee = true;
+                        }
+                    }
+                    if (shouldSee) {
+                        const d = getRecordDateObj(r.date, r.createdAt);
+                        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        pendingGroups.add(`${r.responsible}_${monthKey}`);
+                    }
+                });
+                pendingApprovalCount = pendingGroups.size;
+            }
+
             return (
                 <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
                 <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 text-slate-800 p-6 sticky top-0 h-screen">
@@ -667,7 +692,7 @@
                     <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="ภาพรวม Dashboard" />
                     <NavItem active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="ประวัติการบันทึกของฉัน" />
                     {showApprovalMenu && (
-                        <NavItem active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckSquare size={20} />} label="รายการรออนุมัติ" />
+                        <NavItem active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckSquare size={20} />} label="รายการรออนุมัติ" badgeCount={pendingApprovalCount} />
                     )}
                     <NavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<FileText size={20} />} label="สรุปรายงาน (Export)" />
                     </nav>
@@ -814,7 +839,7 @@
                     </button>
                     </div>
                     {showApprovalMenu && (
-                        <MobileNavItem active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckSquare size={20} />} label="Approve" />
+                        <MobileNavItem active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckSquare size={20} />} label="Approve" badgeCount={pendingApprovalCount} />
                     )}
                     <MobileNavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<FileText size={20} />} label="Report" />
                 </nav>
@@ -1086,24 +1111,40 @@
             );
         }
 
-        function NavItem({ active, icon, label, onClick }) {
+        // 🌟 อัปเดตให้รองรับการแสดงตัวเลข Notification Badge
+        function NavItem({ active, icon, label, onClick, badgeCount }) {
             return (
                 <button 
                 onClick={onClick}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                     active ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-semibold' : 'text-slate-500 hover:text-orange-600 hover:bg-orange-50 font-medium'
                 }`}
                 >
-                {icon}
-                <span className="text-sm">{label}</span>
+                    <div className="flex items-center gap-3">
+                        {icon}
+                        <span className="text-sm">{label}</span>
+                    </div>
+                    {badgeCount > 0 && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${active ? 'bg-white text-orange-500' : 'bg-red-500 text-white animate-pulse'}`}>
+                            {badgeCount}
+                        </span>
+                    )}
                 </button>
             );
         }
 
-        function MobileNavItem({ active, icon, label, onClick }) {
+        // 🌟 อัปเดตให้รองรับการแสดงตัวเลข Notification Badge สำหรับมือถือ
+        function MobileNavItem({ active, icon, label, onClick, badgeCount }) {
             return (
                 <button onClick={onClick} className={`flex flex-col items-center gap-1 ${active ? 'text-orange-500' : 'text-slate-400'}`}>
-                {icon}
+                <div className="relative">
+                    {icon}
+                    {badgeCount > 0 && (
+                        <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[8px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">
+                            {badgeCount > 9 ? '9+' : badgeCount}
+                        </span>
+                    )}
+                </div>
                 <span className="text-[10px] font-bold">{label}</span>
                 </button>
             );
@@ -1233,9 +1274,9 @@
         // 🌟 Helper เพื่อจัดสไตล์ให้ป้าย Status
         function StatusBadge({ status, rejectReason }) {
             if (status === 'pending_1') return <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold border border-amber-200"><Clock size={10} /> รออนุมัติ (หัวหน้า)</span>;
-            if (status === 'pending_2') return <span className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200"><Clock size={10} /> รออนุมัติ (ผจก.)</span>;
+            if (status === 'pending_2') return <span className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200"><Clock size={10} /> รออนุมัติ (Teelapong)</span>;
             if (status === 'completed') return <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200"><CheckCircle2 size={10} /> อนุมัติแล้ว</span>;
-            if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200" title={rejectReason}><XCircle size={10} /> ถูกตีกลับ</span>;
+            if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200" title={rejectReason}><XCircle size={10} /> Reject</span>;
             return <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200">ร่าง (ยังไม่ส่ง)</span>;
         }
 
@@ -1245,7 +1286,7 @@
             const canSubmit = timeFilterType === 'month' && selectedMonth && draftRecords.length > 0 && loggedInUser.role !== 'admin' && loggedInUser.role !== 'approver2';
 
             const handleSubmitOT = () => {
-                if(confirm(`ยืนยันการส่งขออนุมัติ OT ประจำเดือน ${formatMonth(selectedMonth)}?\n(จำนวน ${draftRecords.length} รายการ)\n\nเมื่อส่งแล้วจะไม่สามารถแก้ไขข้อมูลได้จนกว่าจะถูกตีกลับ`)) {
+                if(confirm(`ยืนยันการส่งขออนุมัติ OT ประจำเดือน ${formatMonth(selectedMonth)}?\n(จำนวน ${draftRecords.length} รายการ)\n\nเมื่อส่งแล้วจะไม่สามารถแก้ไขข้อมูลได้จนกว่าจะถูก Reject`)) {
                     onBatchUpdate(draftRecords, 'pending_1');
                 }
             };
@@ -1390,9 +1431,10 @@
         }
 
         // 🌟 หน้ากระดานอนุมัติสำหรับ Approver
-        function ApprovalDashboard({ allRecords, loggedInUser, onBatchUpdate, isBatchUpdating, getRecordDateObj, getTeamFromResponsible }) {
+        function ApprovalDashboard({ allRecords, loggedInUser, onBatchUpdate, isBatchUpdating, getRecordDateObj, getSortValue, getTeamFromResponsible }) {
             const [rejectModalGroup, setRejectModalGroup] = useState(null);
             const [rejectReasonText, setRejectReasonText] = useState('');
+            const [viewingGroup, setViewingGroup] = useState(null); // 🌟 State สำหรับเปิดดูรายละเอียดงาน
 
             // ดึงข้อมูลที่รออนุมัติทั้งหมด
             const getPendingGroups = () => {
@@ -1447,9 +1489,10 @@
 
             const handleApprove = (group) => {
                 const newStatus = group.status === 'pending_1' ? 'pending_2' : 'completed';
-                const levelText = group.status === 'pending_1' ? 'ขั้นที่ 1 (ส่งต่อให้ ผจก.)' : 'ขั้นที่ 2 (เสร็จสมบูรณ์)';
+                const levelText = group.status === 'pending_1' ? 'ขั้นที่ 1 (ส่งต่อให้ Teerapong)' : 'ขั้นที่ 2 (เสร็จสมบูรณ์)';
                 if(confirm(`ยืนยันการ "อนุมัติ" OT ของ ${group.responsible} ประจำเดือน ${formatMonth(group.month)}\n\nระบบจะปรับสถานะเป็น: ${levelText}`)) {
                     onBatchUpdate(group.records, newStatus);
+                    setViewingGroup(null); // ปิดหน้าต่างรายละเอียดถ้าเปิดอยู่
                 }
             };
 
@@ -1459,6 +1502,7 @@
                 onBatchUpdate(rejectModalGroup.records, 'rejected', rejectReasonText);
                 setRejectModalGroup(null);
                 setRejectReasonText('');
+                setViewingGroup(null); // ปิดหน้าต่างรายละเอียดถ้าเปิดอยู่
             };
 
             return (
@@ -1500,21 +1544,30 @@
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="mt-auto">
+                                    {/* 🌟 ปุ่มดูรายละเอียดเพิ่มเติม */}
                                     <button 
-                                        onClick={() => setRejectModalGroup(g)}
-                                        disabled={isBatchUpdating}
-                                        className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors border border-red-100 flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
+                                        onClick={() => setViewingGroup(g)}
+                                        className="w-full py-2 mb-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl transition-colors border border-blue-100 flex items-center justify-center gap-1.5 text-sm"
                                     >
-                                        <XCircle size={16} /> ตีกลับ
+                                        <Search size={16} /> ดูรายละเอียดงาน ({g.records.length} รายการ)
                                     </button>
-                                    <button 
-                                        onClick={() => handleApprove(g)}
-                                        disabled={isBatchUpdating}
-                                        className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
-                                    >
-                                        <CheckSquare size={16} /> อนุมัติผ่าน
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => setRejectModalGroup(g)}
+                                            disabled={isBatchUpdating}
+                                            className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors border border-red-100 flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
+                                        >
+                                            <XCircle size={16} /> ตีกลับ
+                                        </button>
+                                        <button 
+                                            onClick={() => handleApprove(g)}
+                                            disabled={isBatchUpdating}
+                                            className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
+                                        >
+                                            <CheckSquare size={16} /> อนุมัติผ่าน
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -1559,6 +1612,118 @@
                                         <button type="submit" disabled={isBatchUpdating} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">ยืนยันการตีกลับ</button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 🌟 ป๊อปอัปดูรายละเอียดงาน (View Details Modal) */}
+                    {viewingGroup && (
+                        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:p-6">
+                            <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => setViewingGroup(null)}></div>
+                            <div className="relative bg-slate-50 w-full max-w-4xl h-[85vh] flex flex-col rounded-3xl shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 overflow-hidden">
+                                <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-white z-10 shrink-0">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center border border-blue-100 hidden sm:flex">
+                                            <Search size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                                รายการงาน <StatusBadge status={viewingGroup.status} />
+                                            </h3>
+                                            <p className="text-sm font-medium text-slate-500 mt-1">
+                                                ของ <strong>{viewingGroup.responsible}</strong> ประจำเดือน {formatMonth(viewingGroup.month)} (รวม {viewingGroup.records.length} งาน)
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setViewingGroup(null)} className="text-slate-400 hover:text-slate-600 bg-slate-100 p-2.5 rounded-full hover:bg-slate-200 transition-colors">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-4 md:p-6">
+                                    <div className="space-y-4">
+                                        {viewingGroup.records.map((r, i) => (
+                                            <div key={r.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-5 hover:border-blue-300 transition-colors">
+                                                <div className="flex-1 space-y-3">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                                                            {r.jobType}
+                                                        </span>
+                                                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                                                            ID: {r.interruptionId || '-'}
+                                                        </span>
+                                                    </div>
+                                                    <h4 className="font-bold text-slate-800 text-base leading-snug">{r.interruption}</h4>
+                                                    
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                                        <div className="flex items-center gap-2 font-medium"><Calendar size={14} className="text-orange-500"/> {r.date}</div>
+                                                        <div className="flex items-center gap-2 font-medium"><Clock size={14} className="text-orange-500"/> {r.time}</div>
+                                                        <div className="flex items-start gap-2 sm:col-span-2 font-medium mt-1">
+                                                            <MapPin size={14} className="text-orange-500 mt-0.5 shrink-0"/> 
+                                                            <span className="leading-snug">{r.location}</span>
+                                                        </div>
+                                                        {r.reason && r.reason !== '-' && (
+                                                            <div className="flex items-start gap-2 sm:col-span-2 font-medium mt-1 text-slate-500">
+                                                                <MessageSquare size={14} className="text-slate-400 mt-0.5 shrink-0"/> 
+                                                                <span><span className="font-bold">เหตุผล:</span> {r.reason}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex gap-3 shrink-0">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">ก่อนทำ</span>
+                                                        <div 
+                                                            className="w-28 h-28 bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center relative group cursor-pointer hover:border-orange-300" 
+                                                            onClick={() => r.beforeImage && window.open(getDisplayImageUrl(r.beforeImage), '_blank')}
+                                                            title="คลิกเพื่อดูรูปเต็ม"
+                                                        >
+                                                            {r.beforeImage ? (
+                                                                <>
+                                                                    <img src={getDisplayImageUrl(r.beforeImage)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Search size={20} /></div>
+                                                                </>
+                                                            ) : <><ImageIcon size={20} className="text-slate-300 mb-1"/><span className="text-[9px] text-slate-400 font-bold">ไม่มีรูป</span></>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">หลังทำ</span>
+                                                        <div 
+                                                            className="w-28 h-28 bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center relative group cursor-pointer hover:border-orange-300" 
+                                                            onClick={() => r.afterImage && window.open(getDisplayImageUrl(r.afterImage), '_blank')}
+                                                            title="คลิกเพื่อดูรูปเต็ม"
+                                                        >
+                                                            {r.afterImage ? (
+                                                                <>
+                                                                    <img src={getDisplayImageUrl(r.afterImage)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Search size={20} /></div>
+                                                                </>
+                                                            ) : <><ImageIcon size={20} className="text-slate-300 mb-1"/><span className="text-[9px] text-slate-400 font-bold">ไม่มีรูป</span></>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="p-5 border-t border-slate-200 bg-white flex justify-end gap-3 shrink-0">
+                                    <button 
+                                        onClick={() => { setRejectModalGroup(viewingGroup); }}
+                                        disabled={isBatchUpdating}
+                                        className="px-6 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors border border-red-100 flex items-center gap-2"
+                                    >
+                                        <XCircle size={18} /> ตีกลับงานนี้
+                                    </button>
+                                    <button 
+                                        onClick={() => handleApprove(viewingGroup)}
+                                        disabled={isBatchUpdating}
+                                        className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors shadow-md shadow-emerald-500/20 flex items-center gap-2"
+                                    >
+                                        <CheckSquare size={18} /> อนุมัติผ่าน
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
