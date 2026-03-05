@@ -83,6 +83,7 @@
         const UserIcon = safeIcon('User');
         const Key = safeIcon('Key');
         const Banknote = safeIcon('Banknote');
+        const BarChart2 = safeIcon('BarChart2'); // 🌟 ไอคอนสำหรับกราฟ
         
         // ไอคอนใหม่สำหรับระบบ Approve
         const Send = safeIcon('Send');
@@ -822,7 +823,23 @@
                     if (shouldSee) {
                         const d = getRecordDateObj(r.date, r.createdAt);
                         const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        pendingGroups.add(`${r.responsible}_${monthKey}`);
+                        
+                        // 🌟 แก้ไข: สแกนหาชื่อทุกคนในบิล เพื่อจัดกลุ่มให้ถูกต้อง (แก้ปัญหาบิลเก่าที่มีหลายชื่อ)
+                        let standardizedName = r.responsible;
+                        const matchedUsers = [];
+                        for (const key in APP_USERS) {
+                            const u = APP_USERS[key];
+                            if (u.role !== 'admin' && u.role !== 'approver2' && isUserMatch(r.responsible, u)) {
+                                matchedUsers.push(u.displayName);
+                            }
+                        }
+
+                        if (matchedUsers.length > 0) {
+                            // ถ้าเจอหลายคน (ข้อมูลเก่า) เอาชื่อมาเรียงต่อกัน, ถ้าเจอคนเดียว (ข้อมูลใหม่) ก็ใช้ชื่อนั้นเลย
+                            standardizedName = matchedUsers.sort().join(', ');
+                        }
+
+                        pendingGroups.add(`${standardizedName}_${monthKey}`);
                     }
                 });
                 pendingApprovalCount = pendingGroups.size;
@@ -941,6 +958,10 @@
                             recentRecords={filteredRecords.slice(0, 3)} 
                             onSetTab={setActiveTab} 
                             dbStatus={dbStatus}
+                            loggedInUser={loggedInUser}
+                            allRecords={allRecords}
+                            getRecordDateObj={getRecordDateObj}
+                            getTeamFromResponsible={getTeamFromResponsible}
                         />
                     )}
                     {activeTab === 'history' && (
@@ -1056,6 +1077,7 @@
             const [password, setPassword] = useState('');
             const [error, setError] = useState('');
             const [isLoggingIn, setIsLoggingIn] = useState(false);
+            const [isPasswordVisible, setIsPasswordVisible] = useState(false); // 🌟 เพิ่ม state สำหรับปุ่มดูรหัสผ่าน
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -1134,12 +1156,25 @@
                         <div className="relative">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                         <input 
-                            type="password" 
+                            type={isPasswordVisible ? "text" : "password"} 
                             placeholder="••••••••"
-                            className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                            className="w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                         />
+                        {/* 🌟 ปุ่มกดค้างเพื่อดูรหัสผ่าน */}
+                        <button
+                            type="button"
+                            className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-colors outline-none select-none ${isPasswordVisible ? 'text-orange-500 bg-orange-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                            onMouseDown={() => setIsPasswordVisible(true)}
+                            onMouseUp={() => setIsPasswordVisible(false)}
+                            onMouseLeave={() => setIsPasswordVisible(false)}
+                            onTouchStart={(e) => { e.preventDefault(); setIsPasswordVisible(true); }}
+                            onTouchEnd={(e) => { e.preventDefault(); setIsPasswordVisible(false); }}
+                            title="กดค้างเพื่อดูรหัสผ่าน"
+                        >
+                            <Eye size={18} />
+                        </button>
                         </div>
                     </div>
 
@@ -1304,7 +1339,67 @@
             );
         }
 
-        function Dashboard({ stats, recentRecords, onSetTab, dbStatus }) {
+        function Dashboard({ stats, recentRecords, onSetTab, dbStatus, loggedInUser, allRecords, getRecordDateObj, getTeamFromResponsible }) {
+            
+            const isAdminOrApprover2 = loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2';
+
+            // 🌟 คำนวณข้อมูลสำหรับแสดงกราฟแท่ง (เฉพาะ Admin & Teerapong.t)
+            const monthlyChartData = React.useMemo(() => {
+                if (!isAdminOrApprover2 || !allRecords || allRecords.length === 0) return [];
+                
+                const currentYear = new Date().getFullYear();
+                const monthsMap = {};
+                
+                // 🌟 เตรียมข้อมูล 12 เดือนสำหรับปีปัจจุบัน
+                for(let i = 1; i <= 12; i++) {
+                    const mStr = String(i).padStart(2, '0');
+                    const key = `${currentYear}-${mStr}`;
+                    const d = new Date(currentYear, i - 1, 1);
+                    monthsMap[key] = {
+                        key: key,
+                        label: d.toLocaleDateString('th-TH', { month: 'short' }), // เช่น ม.ค., ก.พ.
+                        interruption: 0,
+                        interruptionCost: 0,
+                        corrective: 0,
+                        correctiveCost: 0
+                    };
+                }
+
+                allRecords.forEach(r => {
+                    const d = getRecordDateObj(r.date, r.createdAt);
+                    
+                    // กรองเอาเฉพาะข้อมูลของปีปัจจุบันเท่านั้น
+                    if (d.getFullYear() !== currentYear) return; 
+
+                    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    if (!monthsMap[monthKey]) return; // ข้ามถ้าผิดปกติ
+
+                    // คำนวณยอดเงินของงานนี้
+                    let cost = 0;
+                    if (r.jobType?.includes('Short')) cost = 440;
+                    else if (r.jobType?.includes('Medium')) cost = 660;
+                    else if (r.jobType?.includes('Long')) cost = 880;
+                    else if (r.jobType?.includes('Survey')) cost = 330;
+                    else if (r.jobType?.includes('Corrective')) cost = 440;
+                    else if (r.jobType?.includes('Preventive')) cost = 440;
+
+                    const team = getTeamFromResponsible(r.responsible);
+                    if (team === 'Interruption') {
+                        monthsMap[monthKey].interruption += 1;
+                        monthsMap[monthKey].interruptionCost += cost;
+                    } else if (team && team.startsWith('Corrective')) {
+                        monthsMap[monthKey].corrective += 1;
+                        monthsMap[monthKey].correctiveCost += cost;
+                    }
+                });
+
+                // คืนค่าอาร์เรย์ที่เรียงตามเดือน 1-12
+                return Object.values(monthsMap).sort((a, b) => a.key.localeCompare(b.key));
+            }, [allRecords, getRecordDateObj, getTeamFromResponsible, isAdminOrApprover2]);
+
+            // หาค่าที่สูงที่สุดเพื่อนำไปคำนวณความสูงของกราฟแท่ง
+            const maxChartValue = Math.max(...monthlyChartData.map(d => Math.max(d.interruption, d.corrective)), 1);
+
             return (
                 <div className="space-y-6 animate-in fade-in duration-500">
                 
@@ -1333,6 +1428,64 @@
                     <StatCard label="Corrective (440.-)" value={stats.correctiveCount} color="rose" icon={<Wrench size={20} />} />
                     <StatCard label="Preventive (440.-)" value={stats.preventiveCount} color="indigo" icon={<ShieldCheck size={20} />} />
                 </div>
+
+                {/* 🌟 กราฟแสดงผลเฉพาะ Admin และ Approver 2 */}
+                {isAdminOrApprover2 && monthlyChartData.length > 0 && (
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-6 overflow-hidden">
+                        <h3 className="text-lg font-bold text-slate-800 mb-10 flex items-center gap-2">
+                            <BarChart2 size={24} className="text-blue-500" />
+                            เปรียบเทียบจำนวนงานและยอดเงิน (ปี {new Date().getFullYear() + 543})
+                        </h3>
+                        <div className="flex items-end gap-1 sm:gap-3 h-56 sm:h-64 px-1 sm:px-4 overflow-x-auto pb-2">
+                            {monthlyChartData.map((data, idx) => {
+                                const intHeight = (data.interruption / maxChartValue) * 100;
+                                const corHeight = (data.corrective / maxChartValue) * 100;
+
+                                return (
+                                    <div key={idx} className="flex flex-col items-center min-w-[50px] flex-1 h-full justify-end group pt-10">
+                                        <div className="flex gap-0.5 sm:gap-1.5 items-end w-full justify-center h-full">
+                                            {/* แท่งของ Interruption */}
+                                            <div 
+                                                className="w-1/2 max-w-[35px] bg-orange-400 rounded-t-md relative flex items-end justify-center transition-all hover:bg-orange-500 hover:opacity-90" 
+                                                style={{ height: `${intHeight}%`, minHeight: data.interruption > 0 ? '4px' : '0' }}
+                                                title={`Interruption: ${data.interruption} งาน (฿${data.interruptionCost.toLocaleString()})`}
+                                            >
+                                                {data.interruption > 0 && (
+                                                    <div className="absolute bottom-full mb-1.5 flex flex-col items-center leading-none">
+                                                        <span className="text-xs font-bold text-orange-600">{data.interruption}</span>
+                                                        <span className="text-[9px] text-orange-500/80 font-bold mt-0.5">฿{data.interruptionCost.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {/* แท่งของ Corrective */}
+                                            <div 
+                                                className="w-1/2 max-w-[35px] bg-blue-500 rounded-t-md relative flex items-end justify-center transition-all hover:bg-blue-600 hover:opacity-90" 
+                                                style={{ height: `${corHeight}%`, minHeight: data.corrective > 0 ? '4px' : '0' }}
+                                                title={`Corrective: ${data.corrective} งาน (฿${data.correctiveCost.toLocaleString()})`}
+                                            >
+                                                {data.corrective > 0 && (
+                                                    <div className="absolute bottom-full mb-1.5 flex flex-col items-center leading-none">
+                                                        <span className="text-xs font-bold text-blue-600">{data.corrective}</span>
+                                                        <span className="text-[9px] text-blue-500/80 font-bold mt-0.5">฿{data.correctiveCost.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] sm:text-xs font-bold text-slate-500 mt-3 truncate w-full text-center">{data.label}</span>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                        <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                                <div className="w-3 h-3 rounded bg-orange-400"></div> ทีม Interruption
+                            </div>
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                                <div className="w-3 h-3 rounded bg-blue-500"></div> ทีม Corrective
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-4">
@@ -1701,12 +1854,29 @@
                     if (shouldSee) {
                         const d = getRecordDateObj(r.date, r.createdAt);
                         const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                        // ยึดตามชื่อพนักงาน และเดือน
-                        const key = `${r.responsible}_${monthKey}`;
+                        
+                        // 🌟 แก้ไข: จัดกลุ่มโดยตรวจหาชื่อทุกคน (แก้บัคบิลเก่าไปตกอยู่กับชื่อแรกที่เจอ)
+                        let standardizedName = r.responsible;
+                        const matchedUsers = [];
+                        for (const key in APP_USERS) {
+                            const u = APP_USERS[key];
+                            // หาว่าข้อความดิบนี้ ตรงกับ User คนไหนในระบบบ้าง
+                            if (u.role !== 'admin' && u.role !== 'approver2' && isUserMatch(r.responsible, u)) {
+                                matchedUsers.push(u.displayName);
+                            }
+                        }
+
+                        if (matchedUsers.length > 0) {
+                            // ถ้าเจอหลายคน (ข้อมูลเก่า) ให้เอาชื่อมาต่อกัน ถ้าเจอคนเดียว (ข้อมูลใหม่) ก็จะได้ชื่อเดียว
+                            standardizedName = matchedUsers.sort().join(', ');
+                        }
+
+                        // ยึดตามชื่อพนักงาน(มาตรฐาน) และเดือน
+                        const key = `${standardizedName}_${monthKey}`;
                         
                         if (!groups[key]) {
                             groups[key] = {
-                                responsible: r.responsible,
+                                responsible: standardizedName, // แสดงชื่อที่คลีนแล้วบนหัวการ์ด
                                 month: monthKey,
                                 status: r.status,
                                 records: [],
