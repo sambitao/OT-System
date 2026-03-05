@@ -1,26 +1,26 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OT Tracker System</title>
     
-    <!-- 1. โหลด Tailwind CSS สำหรับจัดการความสวยงาม -->
+    <!-- 1. Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. โหลด React Library -->
+    <!-- 2. Load React Library -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
-    <!-- 3. โหลด Babel สำหรับแปลภาษา JSX -->
+    <!-- 3. Load Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- แก้ปัญหา UMD ของ lucide-react ที่มองหา window.react (ตัวพิมพ์เล็ก) -->
+    <!-- Fix UMD issue for lucide-react -->
     <script>
         window.react = window.React;
     </script>
 
-    <!-- 4. โหลด ไอคอน (Lucide) และ ExcelJS แบบล็อคเวอร์ชันเพื่อความเสถียร (0.260.0) -->
+    <!-- 4. Load Icons and ExcelJS -->
     <script src="https://unpkg.com/lucide@0.260.0"></script>
     <script src="https://unpkg.com/lucide-react@0.260.0/dist/umd/lucide-react.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
@@ -33,17 +33,15 @@
 <body>
     <div id="root"></div>
 
-    <!-- โค้ดหลักของระบบ -->
     <script type="text/babel" data-type="module">
-        // นำเข้า Firebase จากฐานข้อมูลส่วนกลางของ Google
+        // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // กำหนดตัวแปรจาก React
         const { useState, useEffect } = React;
         
-        // 🌟 แก้ไข: เพิ่มเกราะป้องกันการหาไอคอนไม่เจอ (Safe Fallback) ป้องกันหน้าเว็บล่ม 100%
+        // Safe Icon Fallback
         const L = window.lucideReact || window.LucideReact || {};
         const safeIcon = (iconName) => {
             return L[iconName] || ((props) => <span style={{display: 'inline-block', width: props.size || 24, height: props.size || 24, backgroundColor: '#cbd5e1', borderRadius: '50%'}} title={`Icon: ${iconName}`} />);
@@ -83,16 +81,13 @@
         const UserIcon = safeIcon('User');
         const Key = safeIcon('Key');
         const Banknote = safeIcon('Banknote');
-        const BarChart2 = safeIcon('BarChart2'); // 🌟 ไอคอนสำหรับกราฟ
-        
-        // ไอคอนใหม่สำหรับระบบ Approve
+        const BarChart2 = safeIcon('BarChart2');
         const Send = safeIcon('Send');
         const FolderOpen = safeIcon('FolderOpen');
         const CheckSquare = safeIcon('CheckSquare');
         const XCircle = safeIcon('XCircle');
         const MessageSquare = safeIcon('MessageSquare');
 
-        // --- Firebase Setup ---
         const firebaseConfig = {
             apiKey: "AIzaSyAZobmlUZjp1p8VREyu0Z1WBE70HkN5Upk",
             authDomain: "ot-system-8b149.firebaseapp.com",
@@ -109,40 +104,33 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- ฐานข้อมูลผู้ใช้งาน (อัปเดต Roles และ Teams สำหรับระบบ Approve) ---
-        // 🌟 แก้ไข: เพิ่ม alias (ชื่ออื่นที่เคยใช้ในระบบ) เพื่อให้ดึงข้อมูลเก่ามาแสดงได้ครบถ้วน
+        // Database Users
         const APP_USERS = {
             'admin':       { pass: 'admin1234', role: 'admin', filterName: 'admin', displayName: 'Administrator', team: 'Admin' },
 			'teerapong.t': { pass: 'teerapong.t1234', role: 'approver2', filterName: 'teerapong.t', displayName: 'Teerapong.T', team: 'Admin', email: 'teerapong.t@symphony.net.th' }, // Approve 2
 			'narinsak.s':  { pass: 'narinsak.s1234', role: 'approver1', filterName: 'narinsak.s', displayName: 'Narinsak.S', team: 'Interruption', approveTeam: 'Interruption', email: 'narinsak.s@symphony.net.th' }, // Approve 1
             
-            // 🌟 บัญชีสำหรับทดสอบระบบ
             'test':        { pass: 'test1234', role: 'user', filterName: 'test', displayName: 'Test.User', team: 'Interruption' },
 
-            // ทีม Interruption
             'noppadol.m':  { pass: 'noppadol.m1234', role: 'user', filterName: 'noppadol.m', displayName: 'Noppadol.M', team: 'Interruption' },
             'arttapon.j':  { pass: 'arttapon.j1234', role: 'user', filterName: 'arttapon.j', displayName: 'Arttapon.J', team: 'Interruption' },
             'phanuwat.p':  { pass: 'phanuwat.p1234', role: 'user', filterName: 'phanuwat.p', displayName: 'Phanuwat.P', team: 'Interruption' },
-            // 🌟 เพิ่ม aliases ให้ Kittipoom เพื่อค้นหาทั้งชื่อนามสกุลเดิมและใหม่
             'kittipoom.b': { pass: 'kittipoom.b1234', role: 'user', filterName: 'kittipoom.b', displayName: 'Kittipoom.B', team: 'Interruption', aliases: ['kittipoom.p', 'kittipoom.b'] },
             'amnat.s':     { pass: 'amnat.s1234', role: 'user', filterName: 'amnat.s', displayName: 'Amnat.S', team: 'Interruption' },
 			'nattawut.p':  { pass: 'nattawut.p1234', role: 'user', filterName: 'nattawut.p', displayName: 'Nattawut.P', team: 'Interruption' },
 			
-            // ทีม Corrective 1
             'apiwat.s':    { pass: 'apiwat.s1234', role: 'approver1', filterName: 'apiwat.s', displayName: 'Apiwat.S', team: 'Corrective 1', approveTeam: 'Corrective 1', email: 'apiwat.s@symphony.net.th' }, // Approve 1
             'theeti.t':    { pass: 'theeti.t1234', role: 'user', filterName: 'theeti.t', displayName: 'Theeti.T', team: 'Corrective 1' },
             'sawanat.u':   { pass: 'sawanat.u1234', role: 'user', filterName: 'sawanat.u', displayName: 'Sawanat.U', team: 'Corrective 1' },
 			'rungrueang.a':{ pass: 'rungrueang.a1234', role: 'user', filterName: 'rungrueang.a', displayName: 'Rungrueang.A', team: 'Corrective 1' },
 			'marttaphum.h':{ pass: 'marttaphum.h1234', role: 'user', filterName: 'marttaphum.h', displayName: 'Marttaphum.H', team: 'Corrective 1' },
             
-            // ทีม Corrective 2
 			'nattakarn.p': { pass: 'nattakarn.p1234', role: 'approver1', filterName: 'nattakarn.p', displayName: 'Nattakarn.P', team: 'Corrective 2', approveTeam: 'Corrective 2', email: 'nattakarn.p@symphony.net.th' }, // Approve 1
 			'rachatat.t':  { pass: 'rachatat.t1234', role: 'user', filterName: 'rachatat.t', displayName: 'Rachatat.T', team: 'Corrective 2' },
 			'pasakorn.p':  { pass: 'pasakorn.p1234', role: 'user', filterName: 'pasakorn.p', displayName: 'Pasakorn.P', team: 'Corrective 2' },
 			'natapon.y':   { pass: 'natapon.y1234', role: 'user', filterName: 'natapon.y', displayName: 'Natapon.Y', team: 'Corrective 2' },
 			'kanok.m':     { pass: 'kanok.m1234', role: 'user', filterName: 'kanok.m', displayName: 'Kanok.M', team: 'Corrective 2' },
             
-            // ทีม Corrective 3
             'prachin.b':   { pass: 'prachin.b1234', role: 'approver1', filterName: 'prachin.b', displayName: 'Prachin.B', team: 'Corrective 3', approveTeam: 'Corrective 3', email: 'prachin.b@symphony.net.th' }, // Approve 1
             'apisit.p':    { pass: 'apisit.p1234', role: 'user', filterName: 'apisit.p', displayName: 'Apisit.P', team: 'Corrective 3' },
 			'seksan.i':    { pass: 'seksan.i1234', role: 'user', filterName: 'seksan.i', displayName: 'Seksan.I', team: 'Corrective 3' },
@@ -152,10 +140,10 @@
 
         // 🌟 Helper Functions
         const formatMonth = (YYYYMM) => {
-            if (!YYYYMM) return 'ทั้งหมด';
+            if (!YYYYMM) return 'All Time';
             const [year, month] = YYYYMM.split('-');
             const date = new Date(year, month - 1);
-            return date.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         };
 
         const getStartOfWeek = (date) => {
@@ -173,33 +161,24 @@
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         };
         const formatWeekLabel = (startDateStr) => {
-            if (!startDateStr) return 'ทั้งหมด';
+            if (!startDateStr) return 'All Time';
             const start = new Date(startDateStr);
             const end = new Date(getEndOfWeek(start));
             const formatOpt = { day: 'numeric', month: 'short' };
             const formatOptYear = { day: 'numeric', month: 'short', year: 'numeric' };
-            return `${start.toLocaleDateString('th-TH', formatOpt)} - ${end.toLocaleDateString('th-TH', formatOptYear)}`;
+            return `${start.toLocaleDateString('en-US', formatOpt)} - ${end.toLocaleDateString('en-US', formatOptYear)}`;
         };
 
-        // 🌟 แก้ไข: ฟังก์ชันแปลง URL รูปภาพของ Google Drive ให้แสดงผลได้บนเว็บ
         const getDisplayImageUrl = (url) => {
             if (!url) return '';
             try {
-                // ถ้าเป็น URL ของ Google Drive แบบเก่า
                 if (url.includes('drive.google.com') && url.includes('id=')) {
                     const urlObj = new URL(url);
                     const fileId = urlObj.searchParams.get('id');
-                    // ใช้ URL โครงสร้างใหม่ที่เสถียรกว่า (lh3.googleusercontent.com/d/...)
-                    if (fileId) {
-                        return `https://lh3.googleusercontent.com/d/${fileId}`;
-                    }
-                }
-                // ถ้าเป็น URL รูปแบบอื่นของ Google Drive
-                else if (url.includes('drive.google.com/file/d/')) {
+                    if (fileId) return `https://lh3.googleusercontent.com/d/${fileId}`;
+                } else if (url.includes('drive.google.com/file/d/')) {
                     const fileId = url.split('/d/')[1].split('/')[0];
-                    if (fileId) {
-                        return `https://lh3.googleusercontent.com/d/${fileId}`;
-                    }
+                    if (fileId) return `https://lh3.googleusercontent.com/d/${fileId}`;
                 }
             } catch(e) {
                 console.error("Error formatting image URL:", e);
@@ -207,47 +186,33 @@
             return url;
         };
 
-        // 🌟 สร้างฟังก์ชันเช็คผู้รับผิดชอบ (ถ้ามี .นามสกุล ให้เช็คให้เป๊ะ ถ้าไม่มีให้เทียบแค่ชื่อหน้า)
         const isUserMatch = (recordResponsible, userObj) => {
             if (!recordResponsible || !userObj) return false;
             const resLower = recordResponsible.toLowerCase().trim();
             const filterLower = userObj.filterName.toLowerCase().trim();
             const displayLower = userObj.displayName.toLowerCase().trim();
             
-            // 1. เช็คแบบตรงกันทั้งชื่อและนามสกุลก่อน (Exact or full includes)
             if (resLower.includes(filterLower) || resLower.includes(displayLower) || (filterLower === 'test' && resLower === 'test')) {
                 return true;
             }
             
-            // เช็คใน aliases แบบเต็มชื่อ
             if (userObj.aliases && Array.isArray(userObj.aliases)) {
                 for (const alias of userObj.aliases) {
-                    if (resLower.includes(alias.toLowerCase().trim())) {
-                        return true;
-                    }
+                    if (resLower.includes(alias.toLowerCase().trim())) return true;
                 }
             }
             
-            // 2. ถ้าในฐานข้อมูล "มีการใส่นามสกุลมาด้วย (มีจุด .)" แต่ไม่ผ่านเงื่อนไขด้านบน
-            // แสดงว่าเป็นคนชื่อซ้ำแต่นามสกุลต่างกัน -> ให้ return false ทันที
-            if (resLower.includes('.')) {
-                return false;
-            }
+            if (resLower.includes('.')) return false;
             
-            // 3. ถ้าฐานข้อมูลมี "แค่ชื่อหน้า (ไม่มีจุด)" ให้เทียบเฉพาะชื่อหน้า
             const filterFirstName = filterLower.split('.')[0];
             const displayFirstName = displayLower.split('.')[0];
             
-            if (resLower.includes(filterFirstName) || resLower.includes(displayFirstName)) {
-                return true;
-            }
+            if (resLower.includes(filterFirstName) || resLower.includes(displayFirstName)) return true;
             
             if (userObj.aliases && Array.isArray(userObj.aliases)) {
                 for (const alias of userObj.aliases) {
                     const aliasFirstName = alias.toLowerCase().split('.')[0].trim();
-                    if (resLower.includes(aliasFirstName)) {
-                        return true;
-                    }
+                    if (resLower.includes(aliasFirstName)) return true;
                 }
             }
             
@@ -285,24 +250,24 @@
                 <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4 animate-in fade-in relative z-10">
                     <div className="flex items-center gap-2">
                         <Filter className="text-orange-500" size={18} />
-                        <h3 className="font-bold text-slate-800 text-sm">ตัวกรองข้อมูล {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2') && '(มุมมองผู้ดูแลระบบ)'}</h3>
+                        <h3 className="font-bold text-slate-800 text-sm">Data Filters {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2') && '(Admin View)'}</h3>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                         <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase">ช่วงเวลา</label>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase">Period</label>
                             <select value={timeFilterType} onChange={e => setTimeFilterType(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                <option value="month">รายเดือน</option>
-                                <option value="week">รายสัปดาห์</option>
-                                <option value="year">ปีนี้ (This Year)</option>
-                                <option value="all">ทั้งหมด (All Time)</option>
+                                <option value="month">Monthly</option>
+                                <option value="week">Weekly</option>
+                                <option value="year">This Year</option>
+                                <option value="all">All Time</option>
                             </select>
                         </div>
 
                         {timeFilterType === 'month' && (
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">เลือกเดือน</label>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">Select Month</label>
                                 <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                    <option value="">ทุกเดือน (All Months)</option>
+                                    <option value="">All Months</option>
                                     {availableMonths.map(m => <option key={m} value={m}>{formatMonth(m)}</option>)}
                                 </select>
                             </div>
@@ -311,19 +276,19 @@
                         {timeFilterType === 'week' && (
                             <>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase">1. เลือกเดือนก่อน</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">1. Select Month</label>
                                     <select value={selectedMonth} onChange={e => {
                                         setSelectedMonth(e.target.value);
                                         setSelectedWeek('');
                                     }} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                        <option value="">ทุกเดือน</option>
+                                        <option value="">All Months</option>
                                         {availableMonths.map(m => <option key={m} value={m}>{formatMonth(m)}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase">2. เลือกสัปดาห์</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">2. Select Week</label>
                                     <select value={selectedWeek} onChange={e => setSelectedWeek(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                        <option value="">ทุกสัปดาห์ (ในเดือนนี้)</option>
+                                        <option value="">All Weeks</option>
                                         {displayWeeks.map(w => <option key={w} value={w}>{formatWeekLabel(w)}</option>)}
                                     </select>
                                 </div>
@@ -335,20 +300,20 @@
                         {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2') && (
                             <>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase">กรองตามทีม</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Team Filter</label>
                                     <select value={adminTeamFilter} onChange={e => {setAdminTeamFilter(e.target.value); setSelectedUserFilter('');}} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                        <option value="">ทุกทีม</option>
-                                        <option value="Interruption">ทีม Interruption</option>
-                                        <option value="All Corrective">รวม Corrective </option>
-                                        <option value="Corrective 1">ทีม Corrective (เก่ง)</option>
-                                        <option value="Corrective 2">ทีม Corrective (บอล)</option>
-                                        <option value="Corrective 3">ทีม Corrective (จิน)</option>
+                                        <option value="">All Teams</option>
+                                        <option value="Interruption">Interruption</option>
+                                        <option value="All Corrective">All Corrective</option>
+                                        <option value="Corrective 1">Corrective 1</option>
+                                        <option value="Corrective 2">Corrective 2</option>
+                                        <option value="Corrective 3">Corrective 3</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase">รายบุคคล</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Staff</label>
                                     <select value={selectedUserFilter} onChange={e => setSelectedUserFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                        <option value="">ทุกคน</option>
+                                        <option value="">Everyone</option>
                                         {Object.values(APP_USERS)
                                             .filter(u => {
                                                 if (u.role !== 'user' && u.role !== 'approver1') return false;
@@ -362,10 +327,10 @@
                                     </select>
                                 </div>
                                 <div className="space-y-1 col-span-2 lg:col-span-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase">ประเภทงาน (Job Type)</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Job Type</label>
                                     <select value={adminJobTypeFilter} onChange={e => setAdminJobTypeFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                        <option value="">ทุกประเภท</option>
-                                        <option value="Interruption">Interruption (คิดตามชั่วโมง)</option>
+                                        <option value="">All Types</option>
+                                        <option value="Interruption">Interruption</option>
                                         <option value="Survey">Survey</option>
                                         <option value="Corrective">Corrective</option>
                                         <option value="Preventive">Preventive & Special</option>
@@ -390,7 +355,6 @@
             const [showForm, setShowForm] = useState(false);
             const [editingRecord, setEditingRecord] = useState(null);
             
-            // 🌟 แก้ไข: กลับมาใช้ค่าเริ่มต้นเป็น 'month' และแสดงเดือนปัจจุบัน
             const [timeFilterType, setTimeFilterType] = useState('month'); 
             const [selectedMonth, setSelectedMonth] = useState(() => {
                 const now = new Date();
@@ -449,19 +413,15 @@
                     let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     setAllRecords(data);
                     
-                    // Filter สำหรับดึงเข้า State หลัก (Dashboard)
                     if (loggedInUser.role === 'user') {
-                        // 🌟 ใช้ฟังก์ชัน isUserMatch ที่รองรับ aliases
                         data = data.filter(r => isUserMatch(r.responsible, loggedInUser));
                     } else if (loggedInUser.role === 'approver1') {
-                        // approver1 ดูงานตัวเอง และดูของลูกทีมได้ใน Dashboard
                         data = data.filter(r => {
                             const isSelf = isUserMatch(r.responsible, loggedInUser);
                             const isTeam = getTeamFromResponsible(r.responsible) === loggedInUser.approveTeam;
                             return isSelf || isTeam;
                         });
                     }
-                    // admin และ approver2 ดูได้หมดทุกงาน
                     
                     setRecords(data);
                     setDbStatus('connected');
@@ -561,7 +521,6 @@
                 const d = getRecordDateObj(r.date, r.createdAt);
                 const now = new Date();
 
-                // 1. Time Filter
                 let timeMatch = true;
                 if (timeFilterType === 'month') {
                     const recordMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -578,14 +537,12 @@
                     timeMatch = d.getFullYear() === now.getFullYear();
                 }
 
-                // 2. User Filter (อัปเดตให้รองรับ Aliases)
                 let userMatch = true;
                 if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') && selectedUserFilter) {
                     const filteredUserObj = APP_USERS[selectedUserFilter];
                     userMatch = filteredUserObj ? isUserMatch(r.responsible, filteredUserObj) : false;
                 }
 
-                // 3. Team Filter (Admin)
                 let teamMatch = true;
                 if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') && adminTeamFilter) {
                     const recordTeam = getTeamFromResponsible(r.responsible);
@@ -596,7 +553,6 @@
                     }
                 }
 
-                // 4. Job Type Filter (Admin)
                 let jobTypeMatch = true;
                 if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') && adminJobTypeFilter) {
                     jobTypeMatch = r.jobType?.includes(adminJobTypeFilter);
@@ -605,7 +561,6 @@
                 return timeMatch && userMatch && teamMatch && jobTypeMatch;
             });
 
-            // 🌟 แยกประวัติงานสำหรับหน้า History ให้เห็นเฉพาะของตัวเอง ยกเว้น Admin และ Approver2 ให้ดูได้หมด
             const historyRecords = filteredRecords.filter(r => {
                 if (loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') return true;
                 return isUserMatch(r.responsible, loggedInUser);
@@ -636,7 +591,6 @@
                 
                 const nowIso = new Date().toISOString();
                 
-                // 1. กรณี: แก้ไขข้อมูลเดิม (Edit) -> เซฟทับข้อมูลก้อนเดียว
                 if (editingRecord) {
                     const recordToSave = { 
                         ...newRecord, 
@@ -644,7 +598,6 @@
                         updatedAt: nowIso 
                     };
                     
-                    // Optimistic update
                     setRecords(prev => prev.map(r => r.id === editingRecord.id ? recordToSave : r));
                     setAllRecords(prev => prev.map(r => r.id === editingRecord.id ? recordToSave : r));
 
@@ -657,34 +610,29 @@
                         } catch (err) {
                             console.error("Firebase Save Error:", err);
                             setDbStatus('local_only');
-                            alert("⚠️ ไม่สามารถบันทึกข้อมูลลง Cloud ได้ (อาจเกิดจากอินเทอร์เน็ตขัดข้อง หรือสิทธิ์ Firebase ถูกบล็อก)\n\nระบบได้ทำการบันทึกข้อมูลแบบ Offline ไว้ในหน้าจอให้ชั่วคราวแล้วครับ");
+                            alert("⚠️ Offline mode active: Could not connect to Cloud. Data saved locally for now.");
                         }
                     }
                 } 
-                // 2. กรณี: สร้างงานใหม่ (Create) -> ทำการแยกร่าง (Auto-Split) ให้แต่ละคน
                 else {
-                    // ดึงชื่อทุกคนที่พิมพ์มาแยกด้วยลูกน้ำ (,)
                     let rawArray = newRecord.responsible.split(',').map(name => name.trim()).filter(name => name !== '');
-                    if (rawArray.length === 0) rawArray = [loggedInUser.displayName]; // ถ้าลืมใส่ชื่อ ให้ใช้ชื่อคนล็อกอิน
+                    if (rawArray.length === 0) rawArray = [loggedInUser.displayName]; 
                     
-                    const namesToCreate = [...new Set(rawArray)]; // ลบชื่อที่ซ้ำกัน
+                    const namesToCreate = [...new Set(rawArray)]; 
                     
-                    // สร้าง ID งานร่วมกัน เพื่อให้ระบบรู้ว่าเป็นงานเดียวกัน
                     const sharedInterruptionId = (newRecord.interruptionId && newRecord.interruptionId !== '-') 
                         ? newRecord.interruptionId 
                         : ('AUTO-' + Math.floor(Math.random() * 1000000));
 
-                    // สร้างข้อมูลบิลของแต่ละคน
                     const newRecordsToSave = namesToCreate.map((personName, idx) => ({
                         ...newRecord,
                         id: Date.now().toString() + '_' + Math.floor(Math.random() * 10000) + '_' + idx,
                         interruptionId: sharedInterruptionId,
-                        responsible: personName, // แยกชื่อเป็นของใครของมัน
+                        responsible: personName, 
                         status: 'draft',
                         createdAt: nowIso
                     }));
 
-                    // คัดเลือกเฉพาะบิลของคุณมาโชว์ในหน้าจอทันที (ส่วนของเพื่อนจะไปโชว์ที่หน้าจอเพื่อน)
                     const myNewRecords = newRecordsToSave.filter(r => {
                         if (loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') return true;
                         return isUserMatch(r.responsible, loggedInUser);
@@ -704,7 +652,7 @@
                         } catch (err) {
                             console.error("Firebase Save Error:", err);
                             setDbStatus('local_only');
-                            alert("⚠️ เกิดข้อผิดพลาดในการบันทึกข้อมูลลง Cloud");
+                            alert("⚠️ Error saving data to the Cloud.");
                         }
                     }
                 }
@@ -740,12 +688,10 @@
                 setRecordToDelete(null);
             };
 
-            // 🌟 ฟังก์ชันอัปเดตสถานะแบบกลุ่ม (Submit, Approve, Reject)
             const handleBatchStatusUpdate = async (recordsToUpdate, newStatus, reason = '') => {
                 if (recordsToUpdate.length === 0) return;
                 setIsBatchUpdating(true);
 
-                // 🌟 เพิ่ม Fallback สำหรับโหมด Offline / จำลอง (Local Only) ให้แสดงผลได้ทันทีโดยไม่ต้องรอฐานข้อมูล
                 if (!user || dbStatus === 'local_only') {
                     const idsToUpdate = recordsToUpdate.map(r => r.id);
                     const updateLocalData = (r) => {
@@ -780,7 +726,7 @@
                         
                         if (reason) updateData.rejectReason = reason;
                         if (newStatus === 'pending_1' || newStatus === 'pending_2' || newStatus === 'completed') {
-                            updateData.rejectReason = ''; // เคลียร์เหตุผลเมื่อมีการส่งใหม่หรือผ่านการอนุมัติ
+                            updateData.rejectReason = ''; 
                         }
                         
                         if (newStatus === 'completed') {
@@ -794,16 +740,14 @@
                         await updateDoc(docRef, updateData);
                     }
                 } catch (err) {
-                    alert("เกิดข้อผิดพลาดในการปรับปรุงข้อมูล กรุณาลองใหม่");
+                    alert("Error updating data. Please try again.");
                 } finally {
                     setIsBatchUpdating(false);
                 }
             };
 
-            // เมนูด้านข้าง จะแสดงเมนู "รอการอนุมัติ" ก็ต่อเมื่อมีสิทธิ์เป็น admin, approver1 หรือ approver2
             const showApprovalMenu = loggedInUser.role === 'admin' || loggedInUser.role === 'approver1' || loggedInUser.role === 'approver2';
 
-            // 🌟 คำนวณจำนวนงานที่รออนุมัติ (นับเป็นกลุ่ม/แฟ้ม) เพื่อแสดงเป็น Badge
             let pendingApprovalCount = 0;
             if (showApprovalMenu) {
                 const pendingGroups = new Set();
@@ -824,7 +768,6 @@
                         const d = getRecordDateObj(r.date, r.createdAt);
                         const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         
-                        // 🌟 แก้ไข: สแกนหาชื่อทุกคนในบิล เพื่อจัดกลุ่มให้ถูกต้อง (แก้ปัญหาบิลเก่าที่มีหลายชื่อ)
                         let standardizedName = r.responsible;
                         const matchedUsers = [];
                         for (const key in APP_USERS) {
@@ -835,7 +778,6 @@
                         }
 
                         if (matchedUsers.length > 0) {
-                            // ถ้าเจอหลายคน (ข้อมูลเก่า) เอาชื่อมาเรียงต่อกัน, ถ้าเจอคนเดียว (ข้อมูลใหม่) ก็ใช้ชื่อนั้นเลย
                             standardizedName = matchedUsers.sort().join(', ');
                         }
 
@@ -859,12 +801,12 @@
                     </div>
                     
                     <nav className="space-y-2 flex-1">
-                    <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="ภาพรวม Dashboard" />
-                    <NavItem active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="ประวัติการบันทึกของฉัน" />
+                    <NavItem active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard size={20} />} label="Dashboard" />
+                    <NavItem active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={20} />} label="My History" />
                     {showApprovalMenu && (
-                        <NavItem active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckSquare size={20} />} label="รายการรออนุมัติ" badgeCount={pendingApprovalCount} />
+                        <NavItem active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckSquare size={20} />} label="Pending Approvals" badgeCount={pendingApprovalCount} />
                     )}
-                    <NavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<FileText size={20} />} label="สรุปรายงาน (Export)" />
+                    <NavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<FileText size={20} />} label="Export Reports" />
                     </nav>
 
                     <div className="mt-auto pt-6 border-t border-slate-100 space-y-3">
@@ -873,7 +815,7 @@
                         className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl transition-all shadow-lg shadow-orange-500/30 font-bold"
                     >
                         <Plus size={20} />
-                        <span>บันทึก OT ใหม่</span>
+                        <span>New OT Record</span>
                     </button>
                     </div>
                 </aside>
@@ -881,10 +823,10 @@
                 <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
                     <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
                     <h2 className="text-lg font-bold text-slate-800">
-                        {activeTab === 'dashboard' && 'ภาพรวมระบบ'}
-                        {activeTab === 'history' && 'ประวัติการทำงานของคุณ'}
-                        {activeTab === 'approvals' && 'รายการรออนุมัติ (Approval Center)'}
-                        {activeTab === 'reports' && 'ส่งออกรายงาน (Export)'}
+                        {activeTab === 'dashboard' && 'Dashboard Overview'}
+                        {activeTab === 'history' && 'My OT History'}
+                        {activeTab === 'approvals' && 'Approval Center'}
+                        {activeTab === 'reports' && 'Export Center'}
                     </h2>
                     
                     <div className="flex items-center gap-4 text-slate-600">
@@ -914,14 +856,14 @@
                             </div>
                             <button 
                             onClick={() => setShowChangePassword(true)}
-                            title="เปลี่ยนรหัสผ่าน"
+                            title="Change Password"
                             className="ml-4 p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-colors"
                             >
                             <Key size={18} />
                             </button>
                             <button 
                             onClick={handleLogout}
-                            title="ออกจากระบบ"
+                            title="Log Out"
                             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                             >
                             <LogOut size={18} />
@@ -931,7 +873,6 @@
                     </header>
 
                     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-                        {/* ซ่อนตัวกรองถ้าอยู่ในหน้า Approvals เพราะมี UI จัดกลุ่มในนั้นแล้ว */}
                         {activeTab !== 'approvals' && (
                             <GlobalFilterBar 
                                 loggedInUser={loggedInUser}
@@ -1016,7 +957,7 @@
                     {showApprovalMenu && (
                         <MobileNavItem active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<CheckSquare size={20} />} label="Approve" badgeCount={pendingApprovalCount} />
                     )}
-                    <MobileNavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<FileText size={20} />} label="Report" />
+                    <MobileNavItem active={activeTab === 'reports'} onClick={() => setActiveTab('reports')} icon={<FileText size={20} />} label="Export" />
                 </nav>
 
                 {showForm && (
@@ -1047,20 +988,20 @@
                         <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5 border-[6px] border-white shadow-sm">
                         <Trash2 size={36} />
                         </div>
-                        <h3 className="text-xl font-black text-slate-800 mb-2">ยืนยันการลบข้อมูล?</h3>
-                        <p className="text-sm text-slate-500 mb-8 font-medium px-4">คุณกำลังจะลบข้อมูลนี้อย่างถาวร ไม่สามารถกู้คืนกลับมาได้อีก</p>
+                        <h3 className="text-xl font-black text-slate-800 mb-2">Confirm Delete?</h3>
+                        <p className="text-sm text-slate-500 mb-8 font-medium px-4">This record will be permanently deleted.</p>
                         <div className="flex gap-3">
                         <button 
                             onClick={() => setRecordToDelete(null)}
                             className="flex-1 px-4 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
                         >
-                            ยกเลิก
+                            Cancel
                         </button>
                         <button 
                             onClick={executeDelete}
                             className="flex-1 px-4 py-3.5 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all"
                         >
-                            ลบข้อมูล
+                            Delete
                         </button>
                         </div>
                     </div>
@@ -1070,14 +1011,12 @@
             );
         }
 
-        // --- Components ที่ขาดหายไป ---
-
         function LoginScreen({ onLogin }) {
             const [username, setUsername] = useState('');
             const [password, setPassword] = useState('');
             const [error, setError] = useState('');
             const [isLoggingIn, setIsLoggingIn] = useState(false);
-            const [isPasswordVisible, setIsPasswordVisible] = useState(false); // 🌟 เพิ่ม state สำหรับปุ่มดูรหัสผ่าน
+            const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -1088,7 +1027,7 @@
                 const defaultUser = APP_USERS[userKey];
 
                 if (!defaultUser) {
-                setError('ชื่อผู้ใช้งานไม่ถูกต้อง');
+                setError('Invalid username');
                 setIsLoggingIn(false);
                 return;
                 }
@@ -1105,13 +1044,13 @@
                 if (password === currentPassword) {
                     onLogin({ username: userKey, ...defaultUser, currentPass: currentPassword });
                 } else {
-                    setError('รหัสผ่านไม่ถูกต้อง');
+                    setError('Invalid password');
                 }
                 } catch (err) {
                 if (password === defaultUser.pass) {
                     onLogin({ username: userKey, ...defaultUser, currentPass: defaultUser.pass });
                 } else {
-                    setError('รหัสผ่านไม่ถูกต้อง (หรือระบบ Offline)');
+                    setError('Invalid password (or System Offline)');
                 }
                 }
                 
@@ -1126,7 +1065,7 @@
                         <Lock size={36} />
                     </div>
                     <h1 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">OT Tracker System</h1>
-                    <p className="text-slate-500 text-sm font-medium">เข้าสู่ระบบเพื่อจัดการข้อมูลปฏิบัติงาน</p>
+                    <p className="text-slate-500 text-sm font-medium">Login to manage your OT records</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
@@ -1143,7 +1082,7 @@
                         <input 
                             type="text" 
                             autoComplete="off"
-                            placeholder="เช่น arttapon.j"
+                            placeholder="e.g. arttapon.j"
                             className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
                             value={username}
                             onChange={e => setUsername(e.target.value)}
@@ -1162,7 +1101,6 @@
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                         />
-                        {/* 🌟 ปุ่มกดค้างเพื่อดูรหัสผ่าน */}
                         <button
                             type="button"
                             className={`absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-colors outline-none select-none ${isPasswordVisible ? 'text-orange-500 bg-orange-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
@@ -1171,7 +1109,7 @@
                             onMouseLeave={() => setIsPasswordVisible(false)}
                             onTouchStart={(e) => { e.preventDefault(); setIsPasswordVisible(true); }}
                             onTouchEnd={(e) => { e.preventDefault(); setIsPasswordVisible(false); }}
-                            title="กดค้างเพื่อดูรหัสผ่าน"
+                            title="Hold to show password"
                         >
                             <Eye size={18} />
                         </button>
@@ -1183,7 +1121,7 @@
                         disabled={isLoggingIn}
                         className="w-full py-4 bg-orange-500 text-white rounded-xl font-bold text-lg hover:bg-orange-600 shadow-lg shadow-orange-500/30 transition-all mt-4 flex justify-center items-center gap-2 disabled:bg-slate-300 disabled:shadow-none"
                     >
-                        {isLoggingIn ? <Loader2 size={24} className="animate-spin" /> : 'เข้าสู่ระบบ'}
+                        {isLoggingIn ? <Loader2 size={24} className="animate-spin" /> : 'Log In'}
                     </button>
                     </form>
                 </div>
@@ -1203,19 +1141,19 @@
                 setError('');
 
                 if (oldPass !== user.currentPass) {
-                    setError('รหัสผ่านเดิมไม่ถูกต้อง');
+                    setError('Current password is incorrect');
                     return;
                 }
                 if (newPass.length < 6) {
-                    setError('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร');
+                    setError('New password must be at least 6 characters');
                     return;
                 }
                 if (newPass !== confirmPass) {
-                    setError('รหัสผ่านใหม่และการยืนยันรหัสไม่ตรงกัน');
+                    setError('Passwords do not match');
                     return;
                 }
                 if (newPass === oldPass) {
-                    setError('รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม');
+                    setError('New password cannot be the same as current');
                     return;
                 }
 
@@ -1226,7 +1164,7 @@
                     
                     onSuccess({ ...user, currentPass: newPass });
                 } catch (err) {
-                    setError('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่');
+                    setError('Error saving new password. Try again.');
                 }
                 setIsSaving(false);
             };
@@ -1240,7 +1178,7 @@
                                 <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center">
                                     <Key size={20} />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-800">เปลี่ยนรหัสผ่าน</h3>
+                                <h3 className="text-xl font-bold text-slate-800">Change Password</h3>
                             </div>
                             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full transition-colors">
                                 <X size={16} />
@@ -1255,7 +1193,7 @@
                             )}
                             
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">รหัสผ่านปัจจุบัน</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Current Password</label>
                                 <input 
                                     type="password" 
                                     required
@@ -1266,7 +1204,7 @@
                             </div>
                             
                             <div className="space-y-1.5 pt-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase">รหัสผ่านใหม่ (6 ตัวอักษรขึ้นไป)</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase">New Password (Min. 6 chars)</label>
                                 <input 
                                     type="password" 
                                     required
@@ -1277,7 +1215,7 @@
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase">ยืนยันรหัสผ่านใหม่</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase">Confirm New Password</label>
                                 <input 
                                     type="password" 
                                     required
@@ -1292,7 +1230,7 @@
                                 disabled={isSaving}
                                 className="w-full py-3.5 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 shadow-lg shadow-orange-500/30 transition-all mt-6 flex justify-center items-center gap-2 disabled:bg-slate-300"
                             >
-                                {isSaving ? <Loader2 size={18} className="animate-spin" /> : 'บันทึกรหัสผ่านใหม่'}
+                                {isSaving ? <Loader2 size={18} className="animate-spin" /> : 'Save Password'}
                             </button>
                         </form>
                     </div>
@@ -1300,7 +1238,6 @@
             );
         }
 
-        // 🌟 อัปเดตให้รองรับการแสดงตัวเลข Notification Badge
         function NavItem({ active, icon, label, onClick, badgeCount }) {
             return (
                 <button 
@@ -1322,7 +1259,6 @@
             );
         }
 
-        // 🌟 อัปเดตให้รองรับการแสดงตัวเลข Notification Badge สำหรับมือถือ
         function MobileNavItem({ active, icon, label, onClick, badgeCount }) {
             return (
                 <button onClick={onClick} className={`flex flex-col items-center gap-1 ${active ? 'text-orange-500' : 'text-slate-400'}`}>
@@ -1343,21 +1279,19 @@
             
             const isAdminOrApprover2 = loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2';
 
-            // 🌟 คำนวณข้อมูลสำหรับแสดงกราฟแท่ง (เฉพาะ Admin & Teerapong.t)
             const monthlyChartData = React.useMemo(() => {
                 if (!isAdminOrApprover2 || !allRecords || allRecords.length === 0) return [];
                 
                 const currentYear = new Date().getFullYear();
                 const monthsMap = {};
                 
-                // 🌟 เตรียมข้อมูล 12 เดือนสำหรับปีปัจจุบัน
                 for(let i = 1; i <= 12; i++) {
                     const mStr = String(i).padStart(2, '0');
                     const key = `${currentYear}-${mStr}`;
                     const d = new Date(currentYear, i - 1, 1);
                     monthsMap[key] = {
                         key: key,
-                        label: d.toLocaleDateString('th-TH', { month: 'short' }), // เช่น ม.ค., ก.พ.
+                        label: d.toLocaleDateString('en-US', { month: 'short' }),
                         interruption: 0,
                         interruptionCost: 0,
                         corrective: 0,
@@ -1368,13 +1302,11 @@
                 allRecords.forEach(r => {
                     const d = getRecordDateObj(r.date, r.createdAt);
                     
-                    // กรองเอาเฉพาะข้อมูลของปีปัจจุบันเท่านั้น
                     if (d.getFullYear() !== currentYear) return; 
 
                     const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                    if (!monthsMap[monthKey]) return; // ข้ามถ้าผิดปกติ
+                    if (!monthsMap[monthKey]) return; 
 
-                    // คำนวณยอดเงินของงานนี้
                     let cost = 0;
                     if (r.jobType?.includes('Short')) cost = 440;
                     else if (r.jobType?.includes('Medium')) cost = 660;
@@ -1393,23 +1325,23 @@
                     }
                 });
 
-                // คืนค่าอาร์เรย์ที่เรียงตามเดือน 1-12
                 return Object.values(monthsMap).sort((a, b) => a.key.localeCompare(b.key));
             }, [allRecords, getRecordDateObj, getTeamFromResponsible, isAdminOrApprover2]);
 
-            // หาค่าที่สูงที่สุดเพื่อนำไปคำนวณความสูงของกราฟแท่ง
             const maxChartValue = Math.max(...monthlyChartData.map(d => Math.max(d.interruption, d.corrective)), 1);
+
+            const totalInterruptionCost = monthlyChartData.reduce((sum, data) => sum + data.interruptionCost, 0);
+            const totalCorrectiveCost = monthlyChartData.reduce((sum, data) => sum + data.correctiveCost, 0);
+            const grandTotalChartCost = totalInterruptionCost + totalCorrectiveCost;
 
             return (
                 <div className="space-y-6 animate-in fade-in duration-500">
                 
-                {/* 🌟 ป้ายแสดงยอดเงินรวม */}
                 <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-6 md:p-8 text-white shadow-xl shadow-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h3 className="text-emerald-100 font-bold uppercase tracking-widest text-xs md:text-sm mb-1">ยอดรวมค่าล่วงเวลา (ประมาณการ)</h3>
+                        <h3 className="text-emerald-100 font-bold uppercase tracking-widest text-xs md:text-sm mb-1">Estimated Total OT (THB)</h3>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl md:text-5xl font-black tracking-tighter">฿ {stats.totalCost.toLocaleString('th-TH')}</span>
-                            <span className="text-emerald-200 font-medium text-sm md:text-base">บาท</span>
                         </div>
                     </div>
                     <div className="hidden md:flex w-20 h-20 bg-white/20 rounded-full items-center justify-center backdrop-blur-md">
@@ -1418,24 +1350,38 @@
                 </div>
 
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard label="งานทั้งหมด" value={stats.totalJobs} color="orange" icon={<FileText size={20} />} />
+                    <StatCard label="Total Jobs" value={stats.totalJobs} color="orange" icon={<FileText size={20} />} />
                     <StatCard label="Short (440.-)" value={stats.shortPeriod} color="green" icon={<Clock size={20} />} />
                     <StatCard label="Medium (660.-)" value={stats.mediumPeriod} color="blue" icon={<Clock size={20} />} />
                     <StatCard label="Long (880.-)" value={stats.longPeriod} color="purple" icon={<Clock size={20} />} />
                     
-                    {/* 🌟 แสดงกล่องประเภทงานใหม่แบบถาวร */}
                     <StatCard label="Survey (330.-)" value={stats.surveyCount} color="teal" icon={<ClipboardCheck size={20} />} />
                     <StatCard label="Corrective (440.-)" value={stats.correctiveCount} color="rose" icon={<Wrench size={20} />} />
                     <StatCard label="Preventive (440.-)" value={stats.preventiveCount} color="indigo" icon={<ShieldCheck size={20} />} />
                 </div>
 
-                {/* 🌟 กราฟแสดงผลเฉพาะ Admin และ Approver 2 */}
                 {isAdminOrApprover2 && monthlyChartData.length > 0 && (
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-6 overflow-hidden">
-                        <h3 className="text-lg font-bold text-slate-800 mb-10 flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                             <BarChart2 size={24} className="text-blue-500" />
-                            เปรียบเทียบจำนวนงานและยอดเงิน (ปี {new Date().getFullYear() + 543})
+                            Jobs & Cost Comparison (Year {new Date().getFullYear()})
                         </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div className="bg-orange-50 rounded-xl p-4 border border-orange-100 flex flex-col justify-center">
+                                <div className="text-xs text-orange-500 font-bold mb-1 uppercase tracking-wider">Interruption Team Total</div>
+                                <div className="text-2xl font-black text-orange-600">฿{totalInterruptionCost.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 flex flex-col justify-center">
+                                <div className="text-xs text-blue-500 font-bold mb-1 uppercase tracking-wider">Corrective Team Total</div>
+                                <div className="text-2xl font-black text-blue-600">฿{totalCorrectiveCost.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100 flex flex-col justify-center">
+                                <div className="text-xs text-emerald-600 font-bold mb-1 uppercase tracking-wider">Grand Total</div>
+                                <div className="text-2xl font-black text-emerald-600">฿{grandTotalChartCost.toLocaleString()}</div>
+                            </div>
+                        </div>
+
                         <div className="flex items-end gap-1 sm:gap-3 h-56 sm:h-64 px-1 sm:px-4 overflow-x-auto pb-2">
                             {monthlyChartData.map((data, idx) => {
                                 const intHeight = (data.interruption / maxChartValue) * 100;
@@ -1444,11 +1390,10 @@
                                 return (
                                     <div key={idx} className="flex flex-col items-center min-w-[50px] flex-1 h-full justify-end group pt-10">
                                         <div className="flex gap-0.5 sm:gap-1.5 items-end w-full justify-center h-full">
-                                            {/* แท่งของ Interruption */}
                                             <div 
                                                 className="w-1/2 max-w-[35px] bg-orange-400 rounded-t-md relative flex items-end justify-center transition-all hover:bg-orange-500 hover:opacity-90" 
                                                 style={{ height: `${intHeight}%`, minHeight: data.interruption > 0 ? '4px' : '0' }}
-                                                title={`Interruption: ${data.interruption} งาน (฿${data.interruptionCost.toLocaleString()})`}
+                                                title={`Interruption: ${data.interruption} Jobs (฿${data.interruptionCost.toLocaleString()})`}
                                             >
                                                 {data.interruption > 0 && (
                                                     <div className="absolute bottom-full mb-1.5 flex flex-col items-center leading-none">
@@ -1457,11 +1402,10 @@
                                                     </div>
                                                 )}
                                             </div>
-                                            {/* แท่งของ Corrective */}
                                             <div 
                                                 className="w-1/2 max-w-[35px] bg-blue-500 rounded-t-md relative flex items-end justify-center transition-all hover:bg-blue-600 hover:opacity-90" 
                                                 style={{ height: `${corHeight}%`, minHeight: data.corrective > 0 ? '4px' : '0' }}
-                                                title={`Corrective: ${data.corrective} งาน (฿${data.correctiveCost.toLocaleString()})`}
+                                                title={`Corrective: ${data.corrective} Jobs (฿${data.correctiveCost.toLocaleString()})`}
                                             >
                                                 {data.corrective > 0 && (
                                                     <div className="absolute bottom-full mb-1.5 flex flex-col items-center leading-none">
@@ -1478,10 +1422,10 @@
                         </div>
                         <div className="flex justify-center gap-6 mt-4 pt-4 border-t border-slate-100">
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                                <div className="w-3 h-3 rounded bg-orange-400"></div> ทีม Interruption
+                                <div className="w-3 h-3 rounded bg-orange-400"></div> Interruption Team
                             </div>
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                                <div className="w-3 h-3 rounded bg-blue-500"></div> ทีม Corrective
+                                <div className="w-3 h-3 rounded bg-blue-500"></div> Corrective Team
                             </div>
                         </div>
                     </div>
@@ -1490,9 +1434,9 @@
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-slate-800">งานล่าสุด</h3>
+                        <h3 className="text-lg font-bold text-slate-800">Recent Records</h3>
                         <button onClick={() => onSetTab('history')} className="text-orange-500 text-sm font-bold hover:underline flex items-center gap-1">
-                        ดูทั้งหมด <ChevronRight size={16} />
+                        View All <ChevronRight size={16} />
                         </button>
                     </div>
                     <div className="space-y-3">
@@ -1521,7 +1465,7 @@
                         ))
                         ) : (
                         <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400 font-medium">
-                            ยังไม่มีข้อมูลที่บันทึก
+                            No records found.
                         </div>
                         )}
                     </div>
@@ -1529,24 +1473,24 @@
 
                     <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white flex flex-col justify-between shadow-xl shadow-orange-500/20">
                     <div>
-                        <h3 className="text-xl font-bold mb-2">ข้อมูลบันทึกบน Cloud</h3>
+                        <h3 className="text-xl font-bold mb-2">Cloud Sync Status</h3>
                         {dbStatus === 'local_only' ? (
                         <div className="bg-white/10 p-3 rounded-xl mt-3 border border-orange-300/50">
-                            <p className="text-xs font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-1"><HardDrive size={12}/> โหมดความจำเครื่อง</p>
+                            <p className="text-xs font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-1"><HardDrive size={12}/> Local Storage Mode</p>
                             <p className="text-xs text-orange-50 opacity-90 leading-relaxed">
-                            ขณะนี้ระบบกำลังจำลองการทำงานโดยเก็บข้อมูลไว้ในเครื่องชั่วคราว ข้อมูลจะถูกเชื่อมกับ Cloud เมื่อนำไปรันบนเซิร์ฟเวอร์จริง
+                            System is running in offline mode. Data will sync when connected to the server.
                             </p>
                         </div>
                         ) : (
                         <p className="text-orange-100 text-sm opacity-90 leading-relaxed font-medium">
-                            ตอนนี้ระบบได้ซิงค์ข้อมูลกับ Firebase ของคุณแล้ว สามารถใช้งานข้ามอุปกรณ์และเชื่อมต่อ LINE Bot ได้ทันที
+                            System is synced with Firebase. Ready for cross-device usage and LINE Bot integration.
                         </p>
                         )}
                     </div>
                     <div className="mt-6 flex gap-2">
                         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${dbStatus === 'connected' ? 'bg-orange-700/50 border-orange-400/30' : 'bg-slate-700/50 border-slate-400/50'}`}>
                             <Cloud size={16} className={dbStatus === 'connected' ? "text-orange-200" : "text-white"} />
-                            <span className="text-xs text-white font-bold">{dbStatus === 'connected' ? 'Cloud Sync Active' : 'Offline / Sandbox Mode'}</span>
+                            <span className="text-xs text-white font-bold">{dbStatus === 'connected' ? 'Cloud Sync Active' : 'Offline Mode'}</span>
                         </div>
                     </div>
                     </div>
@@ -1578,9 +1522,8 @@
             );
         }
 
-        // 🌟 Helper เพื่อจัดสไตล์ให้ป้าย Status
         function StatusBadge({ status, rejectReason, responsibleName }) {
-            let approverName = "หัวหน้า";
+            let approverName = "Manager";
             if (responsibleName) {
                 const team = getTeamFromResponsible(responsibleName);
                 const approver = Object.values(APP_USERS).find(u => u.role === 'approver1' && u.approveTeam === team);
@@ -1589,29 +1532,27 @@
                 }
             }
 
-            if (status === 'pending_1') return <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold border border-amber-200"><Clock size={10} /> รออนุมัติ ({approverName})</span>;
-            if (status === 'pending_2') return <span className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200"><Clock size={10} /> รออนุมัติ (Teerapong)</span>;
-            if (status === 'completed') return <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200"><CheckCircle2 size={10} /> อนุมัติแล้ว</span>;
-            if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200" title={rejectReason}><XCircle size={10} /> ถูกตีกลับ</span>;
-            return <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200">ร่าง (ยังไม่ส่ง)</span>;
+            if (status === 'pending_1') return <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold border border-amber-200"><Clock size={10} /> Pending ({approverName})</span>;
+            if (status === 'pending_2') return <span className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200"><Clock size={10} /> Pending (Teerapong)</span>;
+            if (status === 'completed') return <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200"><CheckCircle2 size={10} /> Approved</span>;
+            if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200" title={rejectReason}><XCircle size={10} /> Rejected</span>;
+            return <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200">Draft</span>;
         }
 
         function HistoryList({ records, onDelete, onEdit, allRecords, loggedInUser, selectedMonth, timeFilterType, onBatchUpdate, isBatchUpdating }) {
-            const [showConfirmModal, setShowConfirmModal] = useState(false); // 🌟 เพิ่ม State สำหรับเปิด/ปิดป๊อปอัปยืนยัน
+            const [showConfirmModal, setShowConfirmModal] = useState(false); 
 
-            // เช็คว่ามีงานของเดือนที่เลือก ซึ่งยังไม่ได้ส่ง หรือโดนตีกลับ ไหม
             const draftRecords = records.filter(r => !r.status || r.status === 'draft' || r.status === 'rejected');
             const canSubmit = timeFilterType === 'month' && selectedMonth && draftRecords.length > 0 && loggedInUser.role !== 'admin' && loggedInUser.role !== 'approver2';
 
-            // 🌟 คำนวณจำนวนงานที่รูปยังไม่ครบ (ต้องมีทั้งก่อนและหลัง)
             const missingImagesCount = draftRecords.filter(r => !r.beforeImage || !r.afterImage).length;
 
             const handleSubmitOT = () => {
                 if (missingImagesCount > 0) {
-                    alert("ไม่สามารถส่งขออนุมัติได้: กรุณาอัปโหลดรูปภาพ (ก่อนทำและหลังทำ) ให้ครบทุกงานก่อนครับ");
+                    alert("Submission Locked: Please upload all required images (BEFORE and AFTER) before submitting.");
                     return;
                 }
-                setShowConfirmModal(true); // 🌟 เปลี่ยนจากการใช้ confirm() มาเป็นการเปิดป๊อปอัป
+                setShowConfirmModal(true); 
             };
 
             const executeSubmitOT = async () => {
@@ -1619,18 +1560,15 @@
                 const newStatus = loggedInUser.role === 'approver1' ? 'pending_2' : 'pending_1';
                 await onBatchUpdate(draftRecords, newStatus);
                 
-                // 🌟 ระบบส่ง Email แจ้งเตือนเมื่อกดส่งขออนุมัติ
                 try {
                     let targetEmail = '';
                     let approverName = '';
                     
                     if (newStatus === 'pending_1') {
-                        // หา Approver 1 ประจำทีม
                         const approver = Object.values(APP_USERS).find(u => u.role === 'approver1' && u.approveTeam === loggedInUser.team);
                         targetEmail = approver?.email;
                         approverName = approver?.displayName;
                     } else if (newStatus === 'pending_2') {
-                        // หา Approver 2 (teerapong.t)
                         const approver = Object.values(APP_USERS).find(u => u.role === 'approver2');
                         targetEmail = approver?.email;
                         approverName = approver?.displayName;
@@ -1638,20 +1576,17 @@
 
                     if (targetEmail) {
                         const monthLabel = formatMonth(selectedMonth);
-                        const subject = `รบกวนพิจารณาค่าดำเนินการล่วงเวลา OT ประจำเดือน : ${monthLabel} ของ ${loggedInUser.displayName}`;
+                        const subject = `OT Approval Request for ${monthLabel} by ${loggedInUser.displayName}`;
                         
-                        // จัดเรียงรายละเอียดงานเบื้องต้น
                         const jobDetails = draftRecords.map((r, i) => `${i+1}. ${r.date} - ${r.location} - ${r.jobType.split('(')[0].trim()}`).join('\n');
                         
-                        // 🌟 แก้ไขรูปแบบข้อความในอีเมลและเพิ่มส่วนท้าย
-                        const body = `เรียนคุณ ${approverName || 'ผู้อนุมัติ'},\n\nมีการส่งคำขออนุมัติค่าดำเนินการล่วงเวลา (OT) ประจำเดือน ${monthLabel} จากคุณ ${loggedInUser.displayName}\n\nรายละเอียดงาน:\n${jobDetails}\n\nกรุณาเข้าสู่ระบบ OT Tracker เพื่อตรวจสอบรายละเอียดและดำเนินการอนุมัติ หรือตีกลับ\nlink เว็ป = https://sambitao.github.io/OT-System/\n\n(อีเมลฉบับนี้เป็นการแจ้งเตือนอัตโนมัติจากระบบ OT Tracker)`;
+                        const body = `Dear ${approverName || 'Manager'},\n\nA new Overtime (OT) approval request has been submitted for ${monthLabel} by ${loggedInUser.displayName}.\n\nJob Details:\n${jobDetails}\n\nPlease review and approve the request via the OT Tracker System.\nLink = https://sambitao.github.io/OT-System/\n\n(This is an automated message from the OT Tracker System.)`;
 
-                        // ยิง Request ไปหา GAS เพื่อสั่งให้ส่ง Email
                         fetch(GAS_WEBHOOK_URL, {
                             method: 'POST',
                             body: JSON.stringify({ action: 'send_email', to: targetEmail, subject: subject, body: body }),
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                        }).catch(err => console.log("แจ้งเตือน: ไม่สามารถส่งอีเมลในโหมดจำลองได้", err));
+                        }).catch(err => console.log("Alert: Could not send email in local mode", err));
                     }
                 } catch (e) {
                     console.error("Email notification error:", e);
@@ -1661,12 +1596,12 @@
             return (
                 <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-2">
-                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><History size={20} className="text-orange-500"/> ประวัติการบันทึกงาน</h3>
+                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2"><History size={20} className="text-orange-500"/> OT History</h3>
                     <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input 
                             type="text" 
-                            placeholder="ค้นหางาน หรือ สถานที่..." 
+                            placeholder="Search jobs or locations..." 
                             className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium shadow-sm"
                         />
                     </div>
@@ -1699,7 +1634,6 @@
                                 }
                             }
 
-                            // กำหนดสิทธิ์ให้ลบแก้ได้เฉพาะงานตัวเองที่เป็นร่าง หรือถูกตีกลับ (Admin แก้ได้หมด)
                             const isDraftOrRejected = !record.status || record.status === 'draft' || record.status === 'rejected';
                             const isSelf = isUserMatch(record.responsible, loggedInUser);
                             const isAdmin = loggedInUser.role === 'admin';
@@ -1717,7 +1651,7 @@
                                 {record.status === 'rejected' && record.rejectReason && (
                                     <div className="mt-2 text-[10px] text-red-600 font-medium bg-red-50 p-1.5 rounded border border-red-100 flex gap-1">
                                         <MessageSquare size={12} className="shrink-0" />
-                                        <span>หมายเหตุ: {record.rejectReason}</span>
+                                        <span>Reason: {record.rejectReason}</span>
                                     </div>
                                 )}
                                 </td>
@@ -1734,15 +1668,15 @@
                                 <td className="px-6 py-4 text-center">
                                 {hasBothImages ? (
                                     <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-[10px] font-bold border border-emerald-100">
-                                    <CheckCircle2 size={10} /> รูปครบถ้วน
+                                    <CheckCircle2 size={10} /> Completed
                                     </span>
                                 ) : hasOneImage ? (
                                     <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full text-[10px] font-bold border border-orange-100">
-                                    <ImageIcon size={10} /> ขาด 1 รูป
+                                    <ImageIcon size={10} /> Missing 1 Image
                                     </span>
                                 ) : (
                                     <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2.5 py-1 rounded-full text-[10px] font-bold border border-red-100">
-                                    <ImageIcon size={10} /> ยังไม่ใส่รูป
+                                    <ImageIcon size={10} /> No Images
                                     </span>
                                 )}
                                 </td>
@@ -1750,11 +1684,11 @@
                                 <div className="flex justify-end gap-3">
                                     {canEditDelete ? (
                                         <>
-                                            <button onClick={() => onEdit(record)} className="text-slate-400 hover:text-orange-500 transition-colors" title="อัปโหลดรูป / แก้ไขข้อมูล"><Edit size={18} /></button>
-                                            <button onClick={() => onDelete(record.id)} className="text-slate-400 hover:text-red-500 transition-colors" title="ลบข้อมูล"><Trash2 size={18} /></button>
+                                            <button onClick={() => onEdit(record)} className="text-slate-400 hover:text-orange-500 transition-colors" title="Edit Data / Upload Image"><Edit size={18} /></button>
+                                            <button onClick={() => onDelete(record.id)} className="text-slate-400 hover:text-red-500 transition-colors" title="Delete Data"><Trash2 size={18} /></button>
                                         </>
                                     ) : (
-                                        <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 justify-end"><Lock size={12}/> ล็อก</div>
+                                        <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 justify-end"><Lock size={12}/> Locked</div>
                                     )}
                                 </div>
                                 </td>
@@ -1764,7 +1698,7 @@
                         {records.length === 0 && (
                             <tr>
                             <td colSpan="5" className="px-6 py-12 text-center text-slate-400 italic font-medium">
-                                ไม่พบรายการข้อมูลในบัญชี หรือถูกซ่อนไว้โดยตัวกรองเวลา (ลองปรับช่วงเวลาด้านบนเป็น "ทั้งหมด")
+                                No records found matching your filters.
                             </td>
                             </tr>
                         )}
@@ -1773,17 +1707,16 @@
                     </div>
                 </div>
 
-                {/* 🌟 ปุ่มส่งอนุมัติรายเดือน */}
                 {canSubmit && (
                     <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm animate-in fade-in zoom-in-95">
                         <div className="flex items-start gap-3 text-blue-800">
                             <Send size={24} className="mt-1" />
                             <div>
-                                <h4 className="font-bold text-lg">เตรียมส่งขออนุมัติรายเดือน</h4>
-                                <p className="text-sm opacity-80 font-medium">มีข้อมูล {draftRecords.length} รายการ ประจำเดือน {formatMonth(selectedMonth)} ที่พร้อมส่งให้หัวหน้าพิจารณา</p>
+                                <h4 className="font-bold text-lg">Ready to Submit</h4>
+                                <p className="text-sm opacity-80 font-medium">{draftRecords.length} records for {formatMonth(selectedMonth)} ready for manager approval.</p>
                                 {missingImagesCount > 0 && (
                                     <p className="text-xs text-red-600 font-bold mt-2 flex items-center gap-1.5 bg-red-50/80 px-2.5 py-1.5 rounded-lg border border-red-200 w-fit">
-                                        <XCircle size={14} /> ล็อกการส่ง: มี {missingImagesCount} งานที่ยังใส่รูปไม่ครบ 2 รูป
+                                        <XCircle size={14} /> Locked: {missingImagesCount} records are missing images.
                                     </p>
                                 )}
                             </div>
@@ -1794,12 +1727,11 @@
                             className={`w-full sm:w-auto px-8 py-3.5 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${isBatchUpdating || missingImagesCount > 0 ? 'bg-slate-400 shadow-none cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30'}`}
                         >
                             {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                            ส่งข้อมูลให้หัวหน้า
+                            Submit for Approval
                         </button>
                     </div>
                 )}
 
-                {/* 🌟 ป๊อปอัปยืนยันการส่งขออนุมัติ */}
                 {showConfirmModal && (
                     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
@@ -1807,14 +1739,14 @@
                             <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 border-[6px] border-white shadow-sm">
                                 <Send size={36} />
                             </div>
-                            <h3 className="text-xl font-black text-slate-800 mb-2">ยืนยันการส่งขออนุมัติ?</h3>
+                            <h3 className="text-xl font-black text-slate-800 mb-2">Confirm Submission?</h3>
                             <p className="text-sm text-slate-500 mb-8 font-medium px-4">
-                                ประจำเดือน {formatMonth(selectedMonth)} (จำนวน {draftRecords.length} รายการ)<br/><br/>เมื่อส่งแล้วจะไม่สามารถแก้ไขข้อมูลได้จนกว่าจะถูกตีกลับ
+                                {formatMonth(selectedMonth)} ({draftRecords.length} records)<br/><br/>Once submitted, records cannot be edited unless rejected.
                             </p>
                             <div className="flex gap-3">
-                                <button onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                                <button onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
                                 <button onClick={executeSubmitOT} disabled={isBatchUpdating} className="flex-1 px-4 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">
-                                    {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> ยืนยันส่ง</>}
+                                    {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Confirm Submit</>}
                                 </button>
                             </div>
                         </div>
@@ -1824,15 +1756,13 @@
             );
         }
 
-        // 🌟 หน้ากระดานอนุมัติสำหรับ Approver
         function ApprovalDashboard({ allRecords, loggedInUser, onBatchUpdate, isBatchUpdating, getRecordDateObj, getSortValue, getTeamFromResponsible }) {
             const [rejectModalGroup, setRejectModalGroup] = useState(null);
             const [rejectReasonText, setRejectReasonText] = useState('');
-            const [rejectError, setRejectError] = useState(''); // 🌟 เพิ่มแจ้งเตือนถ้าลืมใส่เหตุผลตีกลับ
+            const [rejectError, setRejectError] = useState(''); 
             const [viewingGroup, setViewingGroup] = useState(null); 
-            const [confirmApproveGroup, setConfirmApproveGroup] = useState(null); // 🌟 State สำหรับป๊อปอัปอนุมัติ
+            const [confirmApproveGroup, setConfirmApproveGroup] = useState(null); 
 
-            // ดึงข้อมูลที่รออนุมัติทั้งหมด
             const getPendingGroups = () => {
                 const groups = {};
                 
@@ -1855,28 +1785,24 @@
                         const d = getRecordDateObj(r.date, r.createdAt);
                         const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                         
-                        // 🌟 แก้ไข: จัดกลุ่มโดยตรวจหาชื่อทุกคน (แก้บัคบิลเก่าไปตกอยู่กับชื่อแรกที่เจอ)
                         let standardizedName = r.responsible;
                         const matchedUsers = [];
                         for (const key in APP_USERS) {
                             const u = APP_USERS[key];
-                            // หาว่าข้อความดิบนี้ ตรงกับ User คนไหนในระบบบ้าง
                             if (u.role !== 'admin' && u.role !== 'approver2' && isUserMatch(r.responsible, u)) {
                                 matchedUsers.push(u.displayName);
                             }
                         }
 
                         if (matchedUsers.length > 0) {
-                            // ถ้าเจอหลายคน (ข้อมูลเก่า) ให้เอาชื่อมาต่อกัน ถ้าเจอคนเดียว (ข้อมูลใหม่) ก็จะได้ชื่อเดียว
                             standardizedName = matchedUsers.sort().join(', ');
                         }
 
-                        // ยึดตามชื่อพนักงาน(มาตรฐาน) และเดือน
                         const key = `${standardizedName}_${monthKey}`;
                         
                         if (!groups[key]) {
                             groups[key] = {
-                                responsible: standardizedName, // แสดงชื่อที่คลีนแล้วบนหัวการ์ด
+                                responsible: standardizedName, 
                                 month: monthKey,
                                 status: r.status,
                                 records: [],
@@ -1886,7 +1812,6 @@
                         
                         groups[key].records.push(r);
                         
-                        // คำนวณยอดเงินคร่าวๆ เพื่อให้ Approver ดูง่ายๆ
                         if (r.jobType?.includes('Short')) groups[key].totalCost += 440;
                         else if (r.jobType?.includes('Medium')) groups[key].totalCost += 660;
                         else if (r.jobType?.includes('Long')) groups[key].totalCost += 880;
@@ -1902,7 +1827,7 @@
             const groups = getPendingGroups();
 
             const handleApprove = (group) => {
-                setConfirmApproveGroup(group); // 🌟 เปลี่ยนจาก confirm() มาเปิดป๊อปอัปแทน
+                setConfirmApproveGroup(group); 
             };
 
             const executeApprove = () => {
@@ -1917,13 +1842,13 @@
                 e.preventDefault();
                 setRejectError('');
                 if (!rejectReasonText.trim()) {
-                    setRejectError('กรุณาระบุเหตุผลการตีกลับ');
+                    setRejectError('Reason for rejection is required');
                     return;
                 }
                 onBatchUpdate(rejectModalGroup.records, 'rejected', rejectReasonText);
                 setRejectModalGroup(null);
                 setRejectReasonText('');
-                setViewingGroup(null); // ปิดหน้าต่างรายละเอียดถ้าเปิดอยู่
+                setViewingGroup(null); 
             };
 
             return (
@@ -1931,9 +1856,9 @@
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <div className="flex items-center gap-3 mb-2">
                             <FolderOpen size={24} className="text-orange-500" />
-                            <h3 className="font-bold text-slate-800 text-lg">แฟ้มงานรอการอนุมัติ</h3>
+                            <h3 className="font-bold text-slate-800 text-lg">Pending Approvals</h3>
                         </div>
-                        <p className="text-sm text-slate-500 font-medium">กรุณาตรวจสอบข้อมูลและรูปภาพก่อนกดอนุมัติ หากพบข้อผิดพลาดให้กดตีกลับเพื่อให้เจ้าหน้าที่แก้ไข</p>
+                        <p className="text-sm text-slate-500 font-medium">Please review the details and images before approving. Reject if modifications are needed.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1955,23 +1880,22 @@
                                     
                                     <div className="bg-slate-50 rounded-xl p-3 mb-5 border border-slate-100 flex items-center justify-between">
                                         <div>
-                                            <div className="text-[10px] font-bold text-slate-500 uppercase">ประจำเดือน</div>
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase">Month</div>
                                             <div className="font-bold text-slate-800">{formatMonth(g.month)}</div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-[10px] font-bold text-slate-500 uppercase">จำนวนงาน / ยอดรวม</div>
-                                            <div className="font-bold text-orange-600">{g.records.length} งาน | ฿{g.totalCost.toLocaleString()}</div>
+                                            <div className="text-[10px] font-bold text-slate-500 uppercase">Total Jobs / Cost</div>
+                                            <div className="font-bold text-orange-600">{g.records.length} Jobs | ฿{g.totalCost.toLocaleString()}</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="mt-auto">
-                                    {/* 🌟 ปุ่มดูรายละเอียดเพิ่มเติม */}
                                     <button 
                                         onClick={() => setViewingGroup(g)}
                                         className="w-full py-2 mb-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl transition-colors border border-blue-100 flex items-center justify-center gap-1.5 text-sm"
                                     >
-                                        <Search size={16} /> ดูรายละเอียดงาน ({g.records.length} รายการ)
+                                        <Search size={16} /> View Details ({g.records.length} items)
                                     </button>
                                     <div className="flex gap-2">
                                         <button 
@@ -1979,14 +1903,14 @@
                                             disabled={isBatchUpdating}
                                             className="flex-1 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors border border-red-100 flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
                                         >
-                                            <XCircle size={16} /> ตีกลับ
+                                            <XCircle size={16} /> Reject
                                         </button>
                                         <button 
                                             onClick={() => handleApprove(g)}
                                             disabled={isBatchUpdating}
                                             className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 text-sm disabled:opacity-50"
                                         >
-                                            <CheckSquare size={16} /> อนุมัติผ่าน
+                                            <CheckSquare size={16} /> Approve
                                         </button>
                                     </div>
                                 </div>
@@ -1996,7 +1920,7 @@
                         {groups.length === 0 && (
                             <div className="col-span-full py-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl text-center text-slate-400 font-medium flex flex-col items-center justify-center">
                                 <CheckCircle2 size={48} className="mb-4 text-slate-300 opacity-50" />
-                                เยี่ยมมาก! ไม่มีงานรออนุมัติค้างอยู่ในระบบ
+                                Great! No pending approvals at the moment.
                             </div>
                         )}
                     </div>
@@ -2010,35 +1934,34 @@
                                         <XCircle size={24} />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold text-slate-800">ตีกลับงานให้แก้ไข</h3>
-                                        <p className="text-xs font-medium text-slate-500">ของ {rejectModalGroup.responsible} ({formatMonth(rejectModalGroup.month)})</p>
+                                        <h3 className="text-xl font-bold text-slate-800">Reject for Revision</h3>
+                                        <p className="text-xs font-medium text-slate-500">For {rejectModalGroup.responsible} ({formatMonth(rejectModalGroup.month)})</p>
                                     </div>
                                 </div>
 
                                 <form onSubmit={confirmReject} className="space-y-4">
                                     {rejectError && <div className="text-xs text-red-500 font-bold bg-red-50 p-2 rounded border border-red-100">{rejectError}</div>}
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-700 uppercase">ระบุเหตุผลที่ตีกลับ (จำเป็นต้องกรอก)</label>
+                                        <label className="text-xs font-bold text-slate-700 uppercase">Reason for rejection (Required)</label>
                                         <textarea 
                                             required
                                             autoFocus
                                             rows="3"
-                                            placeholder="เช่น รหัสงานผิด, รูปถ่ายเบลอ, หรือไม่ได้ไปหน้างานจริง..."
+                                            placeholder="e.g. Incorrect job type, blurry image..."
                                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors font-medium text-sm outline-none"
                                             value={rejectReasonText}
                                             onChange={e => setRejectReasonText(e.target.value)}
                                         />
                                     </div>
                                     <div className="flex gap-3 pt-2">
-                                        <button type="button" onClick={() => { setRejectModalGroup(null); setRejectError(''); }} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">ยกเลิก</button>
-                                        <button type="submit" disabled={isBatchUpdating} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">ยืนยันการตีกลับ</button>
+                                        <button type="button" onClick={() => { setRejectModalGroup(null); setRejectError(''); }} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+                                        <button type="submit" disabled={isBatchUpdating} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">Confirm Reject</button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {/* 🌟 ป๊อปอัปยืนยันการอนุมัติผ่าน */}
                     {confirmApproveGroup && (
                         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
                             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setConfirmApproveGroup(null)}></div>
@@ -2046,21 +1969,20 @@
                                 <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-5 border-[6px] border-white shadow-sm">
                                     <CheckSquare size={36} />
                                 </div>
-                                <h3 className="text-xl font-black text-slate-800 mb-2">ยืนยันการอนุมัติผ่าน?</h3>
+                                <h3 className="text-xl font-black text-slate-800 mb-2">Confirm Approval?</h3>
                                 <p className="text-sm text-slate-500 mb-8 font-medium px-4">
-                                    ของ {confirmApproveGroup.responsible}<br/>ประจำเดือน {formatMonth(confirmApproveGroup.month)}<br/><br/>ระบบจะปรับสถานะเป็น: <span className="font-bold text-emerald-600">เสร็จสมบูรณ์</span>
+                                    For {confirmApproveGroup.responsible}<br/>Month: {formatMonth(confirmApproveGroup.month)}<br/><br/>Status will be updated to: <span className="font-bold text-emerald-600">Approved</span>
                                 </p>
                                 <div className="flex gap-3">
-                                    <button onClick={() => setConfirmApproveGroup(null)} className="flex-1 px-4 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                                    <button onClick={() => setConfirmApproveGroup(null)} className="flex-1 px-4 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
                                     <button onClick={executeApprove} disabled={isBatchUpdating} className="flex-1 px-4 py-3.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-500/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">
-                                        {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <><CheckSquare size={18} /> ยืนยันอนุมัติ</>}
+                                        {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <><CheckSquare size={18} /> Confirm Approve</>}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* 🌟 ป๊อปอัปดูรายละเอียดงาน (View Details Modal) */}
                     {viewingGroup && (
                         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:p-6">
                             <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={() => setViewingGroup(null)}></div>
@@ -2072,10 +1994,10 @@
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                                รายการงาน <StatusBadge status={viewingGroup.status} responsibleName={viewingGroup.responsible} />
+                                                Record Items <StatusBadge status={viewingGroup.status} responsibleName={viewingGroup.responsible} />
                                             </h3>
                                             <p className="text-sm font-medium text-slate-500 mt-1">
-                                                ของ <strong>{viewingGroup.responsible}</strong> ประจำเดือน {formatMonth(viewingGroup.month)} (รวม {viewingGroup.records.length} งาน)
+                                                For <strong>{viewingGroup.responsible}</strong> | {formatMonth(viewingGroup.month)} (Total {viewingGroup.records.length} items)
                                             </p>
                                         </div>
                                     </div>
@@ -2109,7 +2031,7 @@
                                                         {r.reason && r.reason !== '-' && (
                                                             <div className="flex items-start gap-2 sm:col-span-2 font-medium mt-1 text-slate-500">
                                                                 <MessageSquare size={14} className="text-slate-400 mt-0.5 shrink-0"/> 
-                                                                <span><span className="font-bold">เหตุผล:</span> {r.reason}</span>
+                                                                <span><span className="font-bold">Reason:</span> {r.reason}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -2117,33 +2039,33 @@
                                                 
                                                 <div className="flex gap-3 shrink-0">
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">ก่อนทำ</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">BEFORE</span>
                                                         <div 
                                                             className="w-28 h-28 bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center relative group cursor-pointer hover:border-orange-300" 
                                                             onClick={() => r.beforeImage && window.open(getDisplayImageUrl(r.beforeImage), '_blank')}
-                                                            title="คลิกเพื่อดูรูปเต็ม"
+                                                            title="Click to view full image"
                                                         >
                                                             {r.beforeImage ? (
                                                                 <>
                                                                     <img src={getDisplayImageUrl(r.beforeImage)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                                                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Search size={20} /></div>
                                                                 </>
-                                                            ) : <><ImageIcon size={20} className="text-slate-300 mb-1"/><span className="text-[9px] text-slate-400 font-bold">ไม่มีรูป</span></>}
+                                                            ) : <><ImageIcon size={20} className="text-slate-300 mb-1"/><span className="text-[9px] text-slate-400 font-bold">NO IMAGE</span></>}
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-col gap-1">
-                                                        <span className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">หลังทำ</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 text-center uppercase tracking-widest">AFTER</span>
                                                         <div 
                                                             className="w-28 h-28 bg-slate-100 rounded-xl border-2 border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center relative group cursor-pointer hover:border-orange-300" 
                                                             onClick={() => r.afterImage && window.open(getDisplayImageUrl(r.afterImage), '_blank')}
-                                                            title="คลิกเพื่อดูรูปเต็ม"
+                                                            title="Click to view full image"
                                                         >
                                                             {r.afterImage ? (
                                                                 <>
                                                                     <img src={getDisplayImageUrl(r.afterImage)} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                                                                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"><Search size={20} /></div>
                                                                 </>
-                                                            ) : <><ImageIcon size={20} className="text-slate-300 mb-1"/><span className="text-[9px] text-slate-400 font-bold">ไม่มีรูป</span></>}
+                                                            ) : <><ImageIcon size={20} className="text-slate-300 mb-1"/><span className="text-[9px] text-slate-400 font-bold">NO IMAGE</span></>}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2158,14 +2080,14 @@
                                         disabled={isBatchUpdating}
                                         className="px-6 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-colors border border-red-100 flex items-center gap-2"
                                     >
-                                        <XCircle size={18} /> ตีกลับงานนี้
+                                        <XCircle size={18} /> Reject
                                     </button>
                                     <button 
                                         onClick={() => handleApprove(viewingGroup)}
                                         disabled={isBatchUpdating}
                                         className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition-colors shadow-md shadow-emerald-500/20 flex items-center gap-2"
                                     >
-                                        <CheckSquare size={18} /> อนุมัติผ่าน
+                                        <CheckSquare size={18} /> Approve
                                     </button>
                                 </div>
                             </div>
@@ -2182,7 +2104,7 @@
 
             const handleExportExcel = async () => {
                 setIsExportingExcel(true);
-                setExportProgress('กำลังเตรียมระบบ...');
+                setExportProgress('Preparing export...');
                 try {
                     const workbook = new window.ExcelJS.Workbook();
                     const worksheet = workbook.addWorksheet('OT Report');
@@ -2198,14 +2120,14 @@
                     worksheet.mergeCells('A1:E1');
                     const titleCell = worksheet.getCell('A1');
                     
-                    let reportTitleLabel = 'รายละเอียดปฏิบัติงานเบิกค่าล่วงเวลา (OT )';
-                    if (timeFilterType === 'month' && selectedMonth) reportTitleLabel += ` ประจำเดือน ${formatMonth(selectedMonth)}`;
+                    let reportTitleLabel = 'Overtime (OT) Record Details';
+                    if (timeFilterType === 'month' && selectedMonth) reportTitleLabel += ` - ${formatMonth(selectedMonth)}`;
                     else if (timeFilterType === 'week') {
-                        if (selectedWeek) reportTitleLabel += ` (สัปดาห์ ${formatWeekLabel(selectedWeek)})`;
-                        else if (selectedMonth) reportTitleLabel += ` ประจำเดือน ${formatMonth(selectedMonth)}`;
-                        else reportTitleLabel += ` (รายสัปดาห์)`;
+                        if (selectedWeek) reportTitleLabel += ` (Week of ${formatWeekLabel(selectedWeek)})`;
+                        else if (selectedMonth) reportTitleLabel += ` - ${formatMonth(selectedMonth)}`;
+                        else reportTitleLabel += ` (Weekly)`;
                     }
-                    else if (timeFilterType === 'year') reportTitleLabel += ` (ปีปัจจุบัน)`;
+                    else if (timeFilterType === 'year') reportTitleLabel += ` (Current Year)`;
                     
                     titleCell.value = reportTitleLabel;
                     titleCell.font = { name: 'Tahoma', size: 14, bold: true };
@@ -2237,13 +2159,12 @@
                     let currentRow = 2;
                     
                     if (allCompleted) {
-                        // 🌟 แก้ไข: ดึงวันที่อนุมัติและชื่อคนอนุมัติ จากการกดอนุมัติ "ครั้งล่าสุด (ล่าสุดที่เพิ่งทำ)"
                         const approvedRecords = [...records].filter(r => r.approveDate).sort((a, b) => new Date(b.approveDate).getTime() - new Date(a.approveDate).getTime());
                         const approverName = approvedRecords.length > 0 ? approvedRecords[0].approvedBy : '-';
                         const approveDateRaw = approvedRecords.length > 0 ? approvedRecords[0].approveDate : null;
-                        const approveDate = approveDateRaw ? new Date(approveDateRaw).toLocaleString('th-TH') : '-';
+                        const approveDate = approveDateRaw ? new Date(approveDateRaw).toLocaleString('en-US') : '-';
                         
-                        worksheet.addRow([`สถานะ: Approved | อนุมัติโดย: ${approverName} | วันที่: ${approveDate}`]);
+                        worksheet.addRow([`Status: Approved | Approved by: ${approverName} | Date: ${approveDate}`]);
                         worksheet.mergeCells('A2:E2');
                         worksheet.getCell('A2').font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FF059669' } };
                         worksheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'left' };
@@ -2254,10 +2175,9 @@
                     
                     for (let index = 0; index < sortedRecords.length; index++) {
                         const record = sortedRecords[index];
-                        setExportProgress(`กำลังดึงรูปภาพ ${index + 1}/${sortedRecords.length}...`);
+                        setExportProgress(`Fetching image ${index + 1}/${sortedRecords.length}...`);
                         const i = index + 1;
                         
-                        // 🌟 ค้นหารายชื่อผู้ร่วมงานสำหรับการ Export Excel
                         let displayResponsible = record.responsible;
                         if (allRecords && record.interruptionId && record.interruptionId !== '-') {
                             const coworkers = allRecords
@@ -2268,14 +2188,14 @@
                             }
                         }
                         
-                        worksheet.addRow([i, 'JOB Type :', record.jobType, 'รูปก่อนทำ', 'รูปหลังทำ']);
+                        worksheet.addRow([i, 'JOB Type :', record.jobType, 'Before Image', 'After Image']);
                         worksheet.addRow(['', 'Interruption :', record.interruption, '', '']);
                         worksheet.addRow(['', 'Interruption ID :', record.interruptionId || '-', '', '']);
-                        worksheet.addRow(['', 'Reason', record.reason || '-', '', '']);
-                        worksheet.addRow(['', 'Location :', 'Location: ' + record.location, '', '']);
-                        worksheet.addRow(['', 'Date :', 'Date: ' + record.date, '', '']);
-                        worksheet.addRow(['', 'Time :', 'Time: ' + record.time, '', '']);
-                        worksheet.addRow(['', 'NSB Responsible :', 'เจ้าหน้าที่ปฏิบัติงาน : ' + displayResponsible, '', '']);
+                        worksheet.addRow(['', 'Reason :', record.reason || '-', '', '']);
+                        worksheet.addRow(['', 'Location :', record.location, '', '']);
+                        worksheet.addRow(['', 'Date :', record.date, '', '']);
+                        worksheet.addRow(['', 'Time :', record.time, '', '']);
+                        worksheet.addRow(['', 'Responsible Staff :', displayResponsible, '', '']);
                         
                         worksheet.mergeCells(`A${currentRow}:A${currentRow+7}`);
                         worksheet.mergeCells(`D${currentRow+1}:D${currentRow+7}`);
@@ -2326,7 +2246,7 @@
                         currentRow += 1;
                     }
                     
-                    setExportProgress('กำลังสร้างไฟล์ Excel...');
+                    setExportProgress('Generating Excel...');
                     const buffer = await workbook.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     const link = document.createElement("a");
@@ -2338,7 +2258,7 @@
                     document.body.removeChild(link);
                 } catch (error) {
                     console.error("Excel generation error:", error);
-                    alert('เกิดข้อผิดพลาดระหว่างดาวน์โหลดไฟล์ Excel');
+                    alert('An error occurred while generating Excel file.');
                 } finally {
                     setIsExportingExcel(false);
                     setExportProgress('');
@@ -2352,9 +2272,9 @@
                     <TableProperties size={32} />
                     </div>
                     <div className="space-y-2">
-                        <h3 className="text-xl font-bold text-slate-800">จัดการรายงานตาราง (Export Center)</h3>
+                        <h3 className="text-xl font-bold text-slate-800">Export Center</h3>
                         <p className="text-slate-500 max-w-sm mx-auto text-sm font-medium">
-                        ระบบจะดึงข้อมูลอิงตาม "ตัวกรอง" ด้านบนของคุณ มาสร้างเป็นรายงาน (บล็อกตารางแนวตั้ง) เพื่อให้พร้อมพิมพ์หรือส่งต่อทันที
+                        Generate tabular reports based on your selected filters above.
                         </p>
                     </div>
 
@@ -2363,12 +2283,12 @@
                         onClick={() => setShowPreview(true)}
                         className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all shadow-sm"
                     >
-                        <Eye size={20} /> เปิดหน้าพรีวิว & ดาวน์โหลด
+                        <Eye size={20} /> Preview & Download
                     </button>
                     </div>
                     
                     {records.length === 0 && (
-                        <p className="text-xs text-orange-500 font-bold mt-4">! ไม่พบข้อมูลในระบบ (ต้องมีอย่างน้อย 1 รายการ หรือลองปรับตัวกรองเวลาดู)</p>
+                        <p className="text-xs text-orange-500 font-bold mt-4">! No records found. Try adjusting the filters.</p>
                     )}
                 </div>
 
@@ -2397,11 +2317,10 @@
             const allCompleted = records.length > 0 && records.every(r => r.status === 'completed');
             const canExport = allCompleted || loggedInUser.role === 'admin';
             
-            // 🌟 แก้ไข: ดึงวันที่อนุมัติและชื่อคนอนุมัติ จากการกดอนุมัติ "ครั้งล่าสุด (ล่าสุดที่เพิ่งทำ)"
             const approvedRecords = [...records].filter(r => r.approveDate).sort((a, b) => new Date(b.approveDate).getTime() - new Date(a.approveDate).getTime());
             const approverName = approvedRecords.length > 0 ? approvedRecords[0].approvedBy : '-';
             const approveDateRaw = approvedRecords.length > 0 ? approvedRecords[0].approveDate : null;
-            const approveDate = approveDateRaw ? new Date(approveDateRaw).toLocaleString('th-TH') : '-';
+            const approveDate = approveDateRaw ? new Date(approveDateRaw).toLocaleString('en-US') : '-';
 
             const handlePrint = () => {
                 setIsPrinting(true);
@@ -2418,7 +2337,6 @@
                 const docWindow = iframe.contentWindow.document;
                 docWindow.open();
                 
-                // แก้ปัญหาเบราว์เซอร์อ่านแท็ก script ผิดพลาดด้วยการแยก string
                 docWindow.write(`
                     <!DOCTYPE html>
                     <html>
@@ -2466,7 +2384,7 @@
                                 <div className="p-2 bg-orange-50 text-orange-500 rounded-lg">
                                     <TableProperties size={20} />
                                 </div>
-                                <h3 className="font-bold text-slate-800">หน้าตาตารางก่อน Export</h3>
+                                <h3 className="font-bold text-slate-800">Report Preview</h3>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
@@ -2492,12 +2410,12 @@
                             <thead>
                                 <tr>
                                     <td colSpan="5" className="font-bold text-[16px] pb-4 border-none px-2 text-center md:text-left">
-                                        รายละเอียดปฏิบัติงานเบิกค่าล่วงเวลา (OT ) 
-                                        {timeFilterType === 'month' && selectedMonth && ` ประจำเดือน ${formatMonth(selectedMonth)}`}
-                                        {timeFilterType === 'week' && selectedWeek && ` (สัปดาห์ ${formatWeekLabel(selectedWeek)})`}
-                                        {timeFilterType === 'week' && !selectedWeek && selectedMonth && ` ประจำเดือน ${formatMonth(selectedMonth)}`}
-                                        {timeFilterType === 'week' && !selectedWeek && !selectedMonth && ` (รายสัปดาห์)`}
-                                        {timeFilterType === 'year' && ` (ปีปัจจุบัน)`}
+                                        Overtime (OT) Record Details 
+                                        {timeFilterType === 'month' && selectedMonth && ` - ${formatMonth(selectedMonth)}`}
+                                        {timeFilterType === 'week' && selectedWeek && ` (Week of ${formatWeekLabel(selectedWeek)})`}
+                                        {timeFilterType === 'week' && !selectedWeek && selectedMonth && ` - ${formatMonth(selectedMonth)}`}
+                                        {timeFilterType === 'week' && !selectedWeek && !selectedMonth && ` (Weekly)`}
+                                        {timeFilterType === 'year' && ` (Current Year)`}
                                         
                                         {allCompleted && (
                                             <div className="text-[13px] text-emerald-600 font-normal mt-2 flex flex-wrap items-center justify-center md:justify-start gap-1.5 bg-emerald-50 inline-flex px-3 py-1 rounded-lg border border-emerald-100">
@@ -2516,7 +2434,6 @@
                             {sortedRecords.length > 0 ? sortedRecords.map((record, index) => {
                                 const i = index + 1;
                                 
-                                // 🌟 ค้นหารายชื่อผู้ร่วมงานสำหรับการแสดงในตารางพรีวิว
                                 let displayResponsible = record.responsible;
                                 if (allRecords && record.interruptionId && record.interruptionId !== '-') {
                                     const coworkers = allRecords
@@ -2533,8 +2450,8 @@
                                             <td className="border border-slate-400 p-1.5 text-center align-middle font-bold" rowSpan="8">{i}</td>
                                             <td className="border border-slate-400 p-1.5 font-bold">JOB Type :</td>
                                             <td className="border border-slate-400 p-1.5 font-semibold text-orange-600 break-words">{record.jobType}</td>
-                                            <td className="border border-slate-400 p-1.5 text-center font-bold">รูปก่อนทำ</td>
-                                            <td className="border border-slate-400 p-1.5 text-center font-bold">รูปหลังทำ</td>
+                                            <td className="border border-slate-400 p-1.5 text-center font-bold">Before Image</td>
+                                            <td className="border border-slate-400 p-1.5 text-center font-bold">After Image</td>
                                         </tr>
                                         <tr>
                                             <td className="border border-slate-400 p-1.5 font-bold whitespace-nowrap">Interruption :</td>
@@ -2569,24 +2486,24 @@
                                             <td className="border border-slate-400 p-1.5 break-words">{record.interruptionId || '-'}</td>
                                         </tr>
                                         <tr>
-                                            <td className="border border-slate-400 p-1.5 font-bold">Reason</td>
+                                            <td className="border border-slate-400 p-1.5 font-bold">Reason :</td>
                                             <td className="border border-slate-400 p-1.5 break-words">{record.reason || '-'}</td>
                                         </tr>
                                         <tr>
                                             <td className="border border-slate-400 p-1.5 font-bold">Location :</td>
-                                            <td className="border border-slate-400 p-1.5 break-words">Location: {record.location}</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">{record.location}</td>
                                         </tr>
                                         <tr>
                                             <td className="border border-slate-400 p-1.5 font-bold">Date :</td>
-                                            <td className="border border-slate-400 p-1.5 break-words">Date: {record.date}</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">{record.date}</td>
                                         </tr>
                                         <tr>
                                             <td className="border border-slate-400 p-1.5 font-bold">Time :</td>
-                                            <td className="border border-slate-400 p-1.5 break-words">Time: {record.time}</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">{record.time}</td>
                                         </tr>
                                         <tr>
-                                            <td className="border border-slate-400 p-1.5 font-bold">NSB Responsible :</td>
-                                            <td className="border border-slate-400 p-1.5 break-words">เจ้าหน้าที่ปฏิบัติงาน : {displayResponsible}</td>
+                                            <td className="border border-slate-400 p-1.5 font-bold">Responsible Staff :</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">{displayResponsible}</td>
                                         </tr>
                                         <tr>
                                             <td colSpan="5" className="h-3 border-none"></td>
@@ -2597,7 +2514,7 @@
                                 <tbody>
                                     <tr>
                                         <td colSpan="5" className="p-10 text-center text-slate-400 border border-dashed border-slate-300">
-                                            ยังไม่มีข้อมูลการปฏิบัติงาน
+                                            No records found
                                         </td>
                                     </tr>
                                 </tbody>
@@ -2609,7 +2526,7 @@
                     <div className="p-4 border-t border-slate-100 flex flex-col bg-white">
                         {!canExport && (
                             <div className="w-full text-center text-xs text-red-500 font-bold mb-3 p-2 bg-red-50 rounded-lg border border-red-100 flex items-center justify-center gap-1">
-                                <XCircle size={14} /> เอกสารนี้ยังไม่ผ่านการอนุมัติครบถ้วน (Completed) หรือมีรายการที่ยังเป็นแบบร่าง ไม่สามารถดาวน์โหลดหรือพิมพ์ได้ (ยกเว้นสิทธิ์ Admin)
+                                <XCircle size={14} /> Cannot export: Some records are still in Draft or Pending status (Admin bypass allowed).
                             </div>
                         )}
                         <div className="flex flex-wrap justify-end gap-3">
@@ -2617,14 +2534,14 @@
                                 onClick={onClose}
                                 className="px-6 py-2.5 text-slate-600 font-bold hover:bg-slate-50 rounded-xl transition-all"
                             >
-                                ปิดหน้าต่าง
+                                Close
                             </button>
                             <button 
                                 onClick={onExportExcel}
                                 disabled={records.length === 0 || isExportingExcel || isPrinting || !canExport}
                                 className={`flex items-center gap-2 px-6 py-2.5 text-white font-bold rounded-xl transition-all shadow-lg ${!canExport || records.length === 0 ? 'bg-slate-300 shadow-none cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'}`}
                             >
-                                {isExportingExcel ? <><Loader2 size={18} className="animate-spin" /> {exportProgress}</> : <><Download size={18} /> ดาวน์โหลด Excel (.xlsx)</>} 
+                                {isExportingExcel ? <><Loader2 size={18} className="animate-spin" /> {exportProgress}</> : <><Download size={18} /> Download Excel (.xlsx)</>} 
                             </button>
                             <button 
                                 onClick={handlePrint}
@@ -2647,7 +2564,6 @@
             const [rawText, setRawText] = useState('');
             const [uploadingState, setUploadingState] = useState({ beforeImage: false, afterImage: false });
             
-            // 🌟 เพิ่ม state สำหรับจัดการหมวดหมู่งานหลัก
             let initialCategory = 'Interruption';
             if (initialData?.jobType) {
                 if (initialData.jobType.includes('Survey')) initialCategory = 'Survey 1 Job';
@@ -2670,16 +2586,14 @@
                 duration: '3',
                 beforeImage: null,
                 afterImage: null,
-                status: 'draft' // ค่าเริ่มต้นเป็นร่างเวลาคีย์งานใหม่
+                status: 'draft' 
             });
 
-            // 🌟 แก้ไขฟังก์ชันคำนวณประเภทงานให้พิจารณาหมวดหมู่ (Category) ด้วย
             const calculateJobType = (category, hours) => {
                 if (category === 'Survey 1 Job') return 'Survey 1 Job';
                 if (category === 'Corrective 1 Job') return 'Corrective 1 Job';
                 if (category === 'Preventive & Special 1 Job') return 'Preventive & Special 1 Job';
                 
-                // สำหรับ Interruption
                 const h = parseFloat(hours);
                 if (h >= 7) return 'Interruption (Long Period)';
                 if (h >= 5) return 'Interruption (Medium Period)';
@@ -2706,7 +2620,6 @@
                 return match ? match[1].trim() : '';
                 };
 
-                // 🌟 ระบบสกัดชื่องานแบบใหม่ (รองรับการพิมพ์คำว่า 'รองรับงาน')
                 let newInterruption = extractFallback(/(?:Interruption|รายละเอียดงาน|ชื่องาน|รายละเอียด)\s*[:=]\s*(.*)/i);
                 
                 if (!newInterruption) {
@@ -2723,9 +2636,8 @@
                 const newTime = extractFallback(/(?:Time|เวลา|ช่วงเวลา)\s*[:=]\s*(.*)/i);
                 
                 const finalInterruptionId = newId || ('AUTO-' + Math.floor(Math.random() * 1000000));
-                const finalInterruption = newInterruption || 'ไม่ระบุรายละเอียดงาน';
+                const finalInterruption = newInterruption || 'No details provided';
 
-                // 🌟 สกัดชื่อเพื่อนร่วมงานจากข้อความ LINE ได้ทั้งหมดแล้ว
                 let finalResponsible = defaultResponsible;
                 const resRegex = /(?:เจ้า\s*หน้า\s*ที่.*|ผู้\s*ป[ฏฎ]ิบัติ\s*งาน|NSB\s*Responsible|ทีมงาน)\s*[:=]\s*([\s\S]*)/i;
                 const resMatch = cleanText.match(resRegex);
@@ -2768,7 +2680,6 @@
                     }
                 }
 
-                // 🌟 เมื่อใช้ Smart Paste บังคับให้หมวดหมู่กลับไปเป็น Interruption เสมอ
                 setJobCategory('Interruption');
 
                 setFormData({
@@ -2789,7 +2700,6 @@
                 setRawText('');
             };
 
-            // 🌟 คำนวณรายชื่อเพื่อนร่วมงานทั้งหมด จากรหัสงานเดียวกัน เพื่อแสดงในหน้าฟอร์ม
             let displayCoworkers = '';
             if (formData.interruptionId && formData.interruptionId !== '-' && allRecords) {
                 const team = allRecords
@@ -2800,7 +2710,6 @@
                 }
             }
 
-            // ถ้าระบบล็อคแล้ว ห้ามแก้ไข
             const isLocked = initialData && (initialData.status === 'pending_1' || initialData.status === 'pending_2' || initialData.status === 'completed');
             const canEdit = loggedInUser?.role === 'admin' || !isLocked;
 
@@ -2808,15 +2717,12 @@
                 if (!canEdit) return;
                 const file = e.target.files[0];
                 
-                // รีเซ็ตค่า input ทันที เพื่อให้เลือกไฟล์เดิมซ้ำได้ในกรณีที่อัปโหลดไม่ผ่าน
                 e.target.value = null; 
 
                 if (!file) return;
 
-                console.log("กำลังเตรียมอัปโหลดไฟล์:", file.name, "ประเภท:", type);
-
                 if (GAS_WEBHOOK_URL === 'https://script.google.com/macros/s/AKfycbyvKG9pey53IFNXkk49ZwAtXPTJApW6cI6lJH6mJHDzvo0usUFQT_Z93kmlu1asXkz75A/exec' && GAS_WEBHOOK_URL.includes('ใส่_URL')) {
-                    alert('กรุณานำ Web App URL ของ Google Apps Script มาใส่ในบรรทัดที่ 26 ของโค้ดก่อนทำการอัปโหลดรูปภาพ');
+                    alert('Please configure Google Apps Script Webhook URL first.');
                     return;
                 }
 
@@ -2828,13 +2734,10 @@
                         const img = new Image();
                         img.onload = async () => {
                             try {
-                                console.log("กำลังบีบอัดรูปภาพ...");
-                                // 🌟 อัปเกรดการบีบอัดรูปภาพขั้นสูง (Advanced Image Compression)
-                                const MAX_DIMENSION = 800; // ล็อกขนาดกว้างหรือยาวสูงสุดไม่เกิน 800px
+                                const MAX_DIMENSION = 800; 
                                 let width = img.width;
                                 let height = img.height;
                                 
-                                // คำนวณสัดส่วนใหม่ (รองรับทั้งรูปแนวตั้งและแนวนอน)
                                 if (width > height) {
                                     if (width > MAX_DIMENSION) {
                                         height = Math.round(height * (MAX_DIMENSION / width));
@@ -2852,19 +2755,14 @@
                                 canvas.height = height;
                                 const ctx = canvas.getContext('2d');
                                 
-                                // เทพื้นหลังสีขาวป้องกันภาพ PNG ที่มีพื้นหลังใสกลายเป็นสีดำ
                                 ctx.fillStyle = '#FFFFFF';
                                 ctx.fillRect(0, 0, width, height);
                                 
-                                // วาดรูปลง Canvas
                                 ctx.drawImage(img, 0, 0, width, height);
                                 
-                                // แปลงเป็น JPEG และลดคุณภาพลงเหลือ 60% (0.6) เพื่อประหยัดพื้นที่สูงสุด
                                 const base64String = canvas.toDataURL('image/jpeg', 0.6);
                                 const base64Data = base64String.split(',')[1];
                                 
-                                console.log("บีบอัดเสร็จสิ้น กำลังส่งข้อมูลไปที่ GAS...");
-
                                 const response = await fetch(GAS_WEBHOOK_URL, {
                                     method: 'POST',
                                     body: JSON.stringify({
@@ -2879,58 +2777,48 @@
                                 });
                                 
                                 const textResponse = await response.text();
-                                console.log("GAS ตอบกลับ:", textResponse);
                                 
                                 if (textResponse.trim() === "OK") {
-                                     throw new Error("ระบบฝั่ง Google Apps Script ตอบกลับเป็นข้อความธรรมดา (OK) แทนที่จะเป็น URL ของรูปภาพ โปรดตรวจสอบฟังก์ชัน doPost ใน GAS");
+                                     throw new Error("Invalid response from GAS.");
                                 }
                                 
                                 let result;
                                 try {
                                     result = JSON.parse(textResponse);
                                 } catch (parseError) {
-                                    console.error("Non-JSON response from GAS:", textResponse);
-                                    throw new Error("ระบบตอบกลับมาผิดรูปแบบ (โปรดตรวจสอบสิทธิ์ Who has access ในตั้งค่า GAS ให้เป็น Anyone)");
+                                    throw new Error("Invalid format returned from server.");
                                 }
                                 
                                 if (result && result.success) {
-                                    console.log("อัปโหลดสำเร็จ! URL:", result.url);
                                     setFormData(prev => ({ ...prev, [type]: result.url }));
                                 } else {
-                                    alert('อัปโหลดรูปล้มเหลว: ' + (result?.error || 'ไม่ทราบสาเหตุ'));
+                                    alert('Upload failed: ' + (result?.error || 'Unknown error'));
                                 }
                             } catch (err) {
                                 console.error('Upload API Error:', err);
-                                if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-                                    alert(`🚨 การส่งรูปถูกบล็อก (Failed to fetch)\n\nวิธีแก้ไข (ทำที่หน้าเว็บ Google Apps Script):\n1. มุมขวาบน กดปุ่มสีน้ำเงิน 'การทำให้ใช้งานได้' (Deploy)\n2. เลือก 'จัดการการทำให้ใช้งานได้' (Manage deployments)\n3. กดรูป ✏️ ดินสอแก้ไข\n4. สำคัญที่สุด! ตรง 'ผู้มีสิทธิ์เข้าถึง (Who has access)' ต้องเลือกเป็น "ทุกคน (Anyone)" เท่านั้น\n5. กดอัปเดตเวอร์ชันใหม่ แล้วก๊อปปี้ URL (ที่ลงท้ายด้วย /exec) มาใส่ในหน้าเว็บอีกครั้งครับ`);
-                                } else {
-                                    alert(`เกิดข้อผิดพลาดในการส่งรูป:\n${err.message}`);
-                                }
+                                alert(`Error uploading image:\n${err.message}`);
                             } finally {
                                 setUploadingState(prev => ({ ...prev, [type]: false }));
                             }
                         };
                         
                         img.onerror = (err) => {
-                            console.error("ไม่สามารถโหลดรูปภาพลง Image object ได้", err);
                             setUploadingState(prev => ({ ...prev, [type]: false }));
-                            alert("ไฟล์รูปภาพนี้ไม่สามารถอ่านได้ กรุณาลองใช้รูปอื่นครับ");
+                            alert("Cannot read this image file.");
                         };
 
                         img.src = event.target.result;
                     };
                     
                     reader.onerror = (err) => {
-                        console.error("FileReader Error:", err);
                         setUploadingState(prev => ({ ...prev, [type]: false }));
-                        alert("เกิดข้อผิดพลาดในการอ่านไฟล์จากเครื่องของคุณ");
+                        alert("Error reading file from your device.");
                     };
 
                     reader.readAsDataURL(file);
                 } catch (error) {
-                    console.error("Main Image Upload Error:", error);
                     setUploadingState(prev => ({ ...prev, [type]: false }));
-                    alert('เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุระหว่างเตรียมรูปภาพ');
+                    alert('Unknown error occurred during upload.');
                 }
             };
 
@@ -2946,7 +2834,7 @@
                 <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] border border-slate-200">
                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <h3 className="text-xl font-bold text-slate-800">{initialData ? (canEdit ? 'แก้ไขข้อมูลปฏิบัติงาน OT' : 'ดูข้อมูลปฏิบัติงาน OT (ล็อก)') : 'บันทึกข้อมูลปฏิบัติงาน OT'}</h3>
+                        <h3 className="text-xl font-bold text-slate-800">{initialData ? (canEdit ? 'Edit OT Record' : 'View OT Record (Locked)') : 'New OT Record'}</h3>
                         {!initialData && canEdit && (
                         <button 
                             type="button"
@@ -2956,7 +2844,7 @@
                             }`}
                         >
                             {isSmartPaste ? <X size={14} /> : <Sparkles size={14} />}
-                            {isSmartPaste ? 'ยกเลิก Paste' : 'Smart Paste'}
+                            {isSmartPaste ? 'Cancel Paste' : 'Smart Paste'}
                         </button>
                         )}
                     </div>
@@ -2971,15 +2859,15 @@
                         <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-start gap-3">
                             <ClipboardPaste className="text-orange-500 shrink-0 mt-1" size={20} />
                             <div className="text-sm text-orange-800">
-                            <p className="font-bold">วางข้อความขออนุญาต OT</p>
-                            <p className="opacity-80 mt-1">วางข้อความที่ถูกส่งเข้ากลุ่ม LINE เพื่อแยกข้อมูลอัตโนมัติ</p>
+                            <p className="font-bold">Paste OT Request Message</p>
+                            <p className="opacity-80 mt-1">Paste message from LINE to auto-fill the form.</p>
                             </div>
                         </div>
                         <textarea 
                             rows="8"
                             autoFocus
                             disabled={isExtracting || !canEdit}
-                            placeholder="วางข้อความที่นี่..."
+                            placeholder="Paste text here..."
                             className={`w-full bg-slate-50 border-2 rounded-2xl px-4 py-4 text-slate-700 text-sm focus:border-orange-500 focus:bg-white outline-none transition-all ${isExtracting ? 'opacity-50 border-slate-200' : 'border-slate-200'}`}
                             value={rawText}
                             onChange={e => setRawText(e.target.value)}
@@ -2992,11 +2880,11 @@
                         >
                             {isExtracting ? (
                             <>
-                                <Loader2 size={18} className="animate-spin" /> กำลังประมวลผล...
+                                <Loader2 size={18} className="animate-spin" /> Processing...
                             </>
                             ) : (
                             <>
-                                <Sparkles size={18} /> แยกข้อมูลลงฟอร์ม
+                                <Sparkles size={18} /> Auto-fill Form
                             </>
                             )}
                         </button>
@@ -3005,25 +2893,25 @@
                         <>
                         {!canEdit && (
                             <div className="bg-amber-50 text-amber-700 border border-amber-200 p-3 rounded-xl flex items-center gap-2 text-xs font-bold mb-4">
-                                <Lock size={14} /> ข้อมูลนี้ถูกล็อกเนื่องจากอยู่ในกระบวนการอนุมัติ หากต้องการแก้ไขให้หัวหน้ากดตีกลับ (Reject) ก่อน
+                                <Lock size={14} /> This record is locked as it is pending approval. Ask your manager to reject it if changes are needed.
                             </div>
                         )}
 
                         <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl flex items-center justify-between shadow-sm">
                             <div className="flex-1">
-                                <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest">ประเภทงาน (JOB Type)</label>
+                                <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Job Type</label>
                                 <select 
                                     className="w-full text-base sm:text-lg font-black text-slate-800 bg-transparent outline-none cursor-pointer mt-1"
                                     value={jobCategory}
                                     disabled={!canEdit}
                                     onChange={e => setJobCategory(e.target.value)}
                                 >
-                                    <option value="Interruption">Interruption (คำนวณตามชม.)</option>
+                                    <option value="Interruption">Interruption (Hourly)</option>
                                     <option value="Survey 1 Job">Survey (330.-)</option>
                                     <option value="Corrective 1 Job">Corrective (440.-)</option>
                                     <option value="Preventive & Special 1 Job">Preventive & Special (440.-)</option>
                                 </select>
-                                <div className="text-xs text-orange-600 font-bold mt-1">สรุปการบันทึก: {formData.jobType}</div>
+                                <div className="text-xs text-orange-600 font-bold mt-1">Summary: {formData.jobType}</div>
                             </div>
                             <div className={`p-2 rounded-xl shadow-sm border flex flex-col items-center min-w-[80px] transition-all ${jobCategory === 'Interruption' ? 'bg-white border-orange-100' : 'bg-slate-100 border-slate-200 opacity-60'}`}>
                                 <span className="text-[10px] text-slate-400 font-bold">HOURS</span>
@@ -3051,7 +2939,7 @@
                             />
                             </div>
                             <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Time (เวลาปฏิบัติงาน)</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Time</label>
                             <input 
                                 type="text"
                                 placeholder="22:00 – 06:00"
@@ -3064,12 +2952,12 @@
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-orange-600 uppercase tracking-wider">Interruption (รายละเอียดงาน)</label>
+                            <label className="text-xs font-bold text-orange-600 uppercase tracking-wider">Interruption Details</label>
                             <textarea 
                             required
                             rows="2"
                             disabled={!canEdit}
-                            placeholder="รายละเอียดการปฏิบัติงาน..."
+                            placeholder="Work details..."
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors font-medium disabled:opacity-70"
                             value={formData.interruption}
                             onChange={e => setFormData({...formData, interruption: e.target.value})}
@@ -3077,10 +2965,10 @@
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reason (สาเหตุ/เหตุผล)</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reason</label>
                             <input 
                             type="text"
-                            placeholder="เช่น รื้อถอนอุปกรณ์, ย้ายสาย..."
+                            placeholder="e.g. Relocating cables..."
                             disabled={!canEdit}
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors font-medium disabled:opacity-70"
                             value={formData.reason}
@@ -3091,12 +2979,12 @@
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
-                                <MapPin size={12} className="text-orange-500" /> Location (สถานที่)
+                                <MapPin size={12} className="text-orange-500" /> Location
                             </label>
                             <input 
                                 required
                                 type="text"
-                                placeholder="ระบุสถานที่..."
+                                placeholder="Location..."
                                 disabled={!canEdit}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors font-medium disabled:opacity-70"
                                 value={formData.location}
@@ -3105,12 +2993,12 @@
                             </div>
                             <div className="space-y-1.5">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
-                                <Calendar size={12} className="text-orange-500" /> Date (วันที่)
+                                <Calendar size={12} className="text-orange-500" /> Date
                             </label>
                             <input 
                                 required
                                 type="text"
-                                placeholder="เช่น Feb 24, 2026"
+                                placeholder="e.g. Feb 24, 2026"
                                 disabled={!canEdit}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors font-medium disabled:opacity-70"
                                 value={formData.date}
@@ -3121,25 +3009,23 @@
 
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
-                            <Users size={12} className="text-orange-500" /> เจ้าหน้าที่ปฏิบัติงาน
+                            <Users size={12} className="text-orange-500" /> Responsible Staff
                             </label>
                             <input 
                             required
                             type="text"
-                            placeholder="เช่น Arttapon.J, Apiwat.S"
-                            // 🌟 แก้ไข: ถ้าสร้างใหม่พิมพ์เพิ่มได้หลายคน แต่ถ้าแก้ข้อมูลเดิมจะล็อกแก้ไขไม่ได้
+                            placeholder="e.g. Arttapon.J, Apiwat.S"
                             disabled={!!initialData && loggedInUser?.role !== 'admin' && loggedInUser?.role !== 'approver2'}
                             className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 font-medium transition-colors ${!!initialData && loggedInUser?.role !== 'admin' && loggedInUser?.role !== 'approver2' ? 'bg-slate-100 border-slate-200 cursor-not-allowed opacity-80' : 'bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500'}`}
                             value={formData.responsible}
                             onChange={e => setFormData({...formData, responsible: e.target.value})}
                             />
                             
-                            {/* 🌟 กล่องแสดงรายชื่อทีมงานทั้งหมด */}
                             {displayCoworkers && (
                                 <div className="mt-2 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-xs text-slate-600 flex items-start gap-2 shadow-sm">
                                     <Users size={14} className="text-indigo-400 mt-0.5 shrink-0" />
                                     <div className="font-medium">
-                                        <span className="font-bold text-indigo-700">รายชื่อทีมงานทั้งหมดในงานนี้:</span> 
+                                        <span className="font-bold text-indigo-700">All team members in this job:</span> 
                                         <div className="mt-1 text-slate-600 break-words">{displayCoworkers}</div>
                                     </div>
                                 </div>
@@ -3147,12 +3033,12 @@
 
                             {loggedInUser?.role === 'user' && !initialData && (
                             <p className="text-[10px] text-orange-500 font-bold ml-1 pt-1">
-                                * สามารถใส่ชื่อเพื่อนร่วมงานคั่นด้วยลูกน้ำ (,) ระบบจะสร้างบิลแยกให้แต่ละคนอัตโนมัติ (บิลใครบิลมัน)
+                                * You can add multiple names separated by commas. The system will auto-split records.
                             </p>
                             )}
                             {loggedInUser?.role === 'user' && initialData && (
                             <p className="text-[10px] text-orange-500 font-bold ml-1 pt-1">
-                                * ชื่อถูกล็อกเป็นของคุณคนเดียว เพื่อป้องกันการแก้ไขข้อมูลทับซ้อนกับเพื่อนร่วมงาน
+                                * Name is locked to you to prevent conflicts with teammates.
                             </p>
                             )}
                         </div>
@@ -3171,14 +3057,14 @@
                                 {canEdit && (
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white z-0">
                                         <Upload size={20} className="mb-1" />
-                                        <span className="text-[10px] font-bold">เปลี่ยนรูป</span>
+                                        <span className="text-[10px] font-bold">Change</span>
                                     </div>
                                 )}
                                 </>
                             ) : (
                                 <>
                                 <Upload size={24} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-center">อัปโหลด<br/>รูปก่อนทำ</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-center">Upload<br/>BEFORE</span>
                                 </>
                             )}
                             </div>
@@ -3196,14 +3082,14 @@
                                 {canEdit && (
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white z-0">
                                         <Upload size={20} className="mb-1" />
-                                        <span className="text-[10px] font-bold">เปลี่ยนรูป</span>
+                                        <span className="text-[10px] font-bold">Change</span>
                                     </div>
                                 )}
                                 </>
                             ) : (
                                 <>
                                 <Upload size={24} />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-center">อัปโหลด<br/>รูปหลังทำ</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-center">Upload<br/>AFTER</span>
                                 </>
                             )}
                             </div>
@@ -3218,14 +3104,14 @@
                         onClick={onClose}
                         className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-white hover:text-slate-800 transition-colors"
                     >
-                        {canEdit ? 'ยกเลิก' : 'ปิดหน้าต่าง'}
+                        {canEdit ? 'Cancel' : 'Close'}
                     </button>
                     {!isSmartPaste && canEdit && (
                         <button 
                         onClick={handleSubmit}
                         className="flex-1 px-4 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 shadow-lg shadow-orange-500/30 transition-all"
                         >
-                        {initialData ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
+                        {initialData ? 'Save Changes' : 'Save Record'}
                         </button>
                     )}
                     </div>
@@ -3234,7 +3120,6 @@
             );
         }
 
-        // --- Render React App ---
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
