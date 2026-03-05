@@ -109,6 +109,7 @@
         const db = getFirestore(app);
 
         // --- ฐานข้อมูลผู้ใช้งาน (อัปเดต Roles และ Teams สำหรับระบบ Approve) ---
+        // 🌟 แก้ไข: เพิ่ม alias (ชื่ออื่นที่เคยใช้ในระบบ) เพื่อให้ดึงข้อมูลเก่ามาแสดงได้ครบถ้วน
         const APP_USERS = {
             'admin':       { pass: 'admin1234', role: 'admin', filterName: 'admin', displayName: 'Administrator', team: 'Admin' },
 			'teerapong.t': { pass: 'teerapong.t1234', role: 'approver2', filterName: 'teerapong.t', displayName: 'Teerapong.T', team: 'Admin', email: 'teerapong.t@symphony.net.th' }, // Approve 2
@@ -121,7 +122,8 @@
             'noppadol.m':  { pass: 'noppadol.m1234', role: 'user', filterName: 'noppadol.m', displayName: 'Noppadol.M', team: 'Interruption' },
             'arttapon.j':  { pass: 'arttapon.j1234', role: 'user', filterName: 'arttapon.j', displayName: 'Arttapon.J', team: 'Interruption' },
             'phanuwat.p':  { pass: 'phanuwat.p1234', role: 'user', filterName: 'phanuwat.p', displayName: 'Phanuwat.P', team: 'Interruption' },
-            'kittipoom.b': { pass: 'kittipoom.b1234', role: 'user', filterName: 'kittipoom.b', displayName: 'Kittipoom.B', team: 'Interruption' },
+            // 🌟 เพิ่ม aliases ให้ Kittipoom เพื่อค้นหาทั้งชื่อนามสกุลเดิมและใหม่
+            'kittipoom.b': { pass: 'kittipoom.b1234', role: 'user', filterName: 'kittipoom.b', displayName: 'Kittipoom.B', team: 'Interruption', aliases: ['kittipoom.p', 'kittipoom.b'] },
             'amnat.s':     { pass: 'amnat.s1234', role: 'user', filterName: 'amnat.s', displayName: 'Amnat.S', team: 'Interruption' },
 			'nattawut.p':  { pass: 'nattawut.p1234', role: 'user', filterName: 'nattawut.p', displayName: 'Nattawut.P', team: 'Interruption' },
 			
@@ -204,12 +206,59 @@
             return url;
         };
 
+        // 🌟 สร้างฟังก์ชันเช็คผู้รับผิดชอบ (ถ้ามี .นามสกุล ให้เช็คให้เป๊ะ ถ้าไม่มีให้เทียบแค่ชื่อหน้า)
+        const isUserMatch = (recordResponsible, userObj) => {
+            if (!recordResponsible || !userObj) return false;
+            const resLower = recordResponsible.toLowerCase().trim();
+            const filterLower = userObj.filterName.toLowerCase().trim();
+            const displayLower = userObj.displayName.toLowerCase().trim();
+            
+            // 1. เช็คแบบตรงกันทั้งชื่อและนามสกุลก่อน (Exact or full includes)
+            if (resLower.includes(filterLower) || resLower.includes(displayLower) || (filterLower === 'test' && resLower === 'test')) {
+                return true;
+            }
+            
+            // เช็คใน aliases แบบเต็มชื่อ
+            if (userObj.aliases && Array.isArray(userObj.aliases)) {
+                for (const alias of userObj.aliases) {
+                    if (resLower.includes(alias.toLowerCase().trim())) {
+                        return true;
+                    }
+                }
+            }
+            
+            // 2. ถ้าในฐานข้อมูล "มีการใส่นามสกุลมาด้วย (มีจุด .)" แต่ไม่ผ่านเงื่อนไขด้านบน
+            // แสดงว่าเป็นคนชื่อซ้ำแต่นามสกุลต่างกัน -> ให้ return false ทันที
+            if (resLower.includes('.')) {
+                return false;
+            }
+            
+            // 3. ถ้าฐานข้อมูลมี "แค่ชื่อหน้า (ไม่มีจุด)" ให้เทียบเฉพาะชื่อหน้า
+            const filterFirstName = filterLower.split('.')[0];
+            const displayFirstName = displayLower.split('.')[0];
+            
+            if (resLower.includes(filterFirstName) || resLower.includes(displayFirstName)) {
+                return true;
+            }
+            
+            if (userObj.aliases && Array.isArray(userObj.aliases)) {
+                for (const alias of userObj.aliases) {
+                    const aliasFirstName = alias.toLowerCase().split('.')[0].trim();
+                    if (resLower.includes(aliasFirstName)) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        };
+
         const getTeamFromResponsible = (responsibleStr) => {
             if (!responsibleStr) return 'Unknown';
-            const resLower = responsibleStr.toLowerCase();
             for (const key in APP_USERS) {
-                if (APP_USERS[key].role !== 'admin' && APP_USERS[key].role !== 'approver2' && resLower.includes(APP_USERS[key].filterName.toLowerCase())) {
-                    return APP_USERS[key].team;
+                const userObj = APP_USERS[key];
+                if (userObj.role !== 'admin' && userObj.role !== 'approver2' && isUserMatch(responsibleStr, userObj)) {
+                    return userObj.team;
                 }
             }
             return 'Unknown';
@@ -401,24 +450,12 @@
                     
                     // Filter สำหรับดึงเข้า State หลัก (Dashboard)
                     if (loggedInUser.role === 'user') {
-                        // 🌟 แก้ไข Logic การ Filter สำหรับ User ให้ยืดหยุ่นขึ้น (หาทั้ง filterName และ displayName)
-                        data = data.filter(r => {
-                            if (!r.responsible) return false;
-                            const resLower = r.responsible.toLowerCase();
-                            const filterLower = loggedInUser.filterName.toLowerCase();
-                            const displayLower = loggedInUser.displayName.toLowerCase();
-                            // ลองเช็คดูว่า User กรอกชื่อตอนสมัครเป็นอะไรกันแน่
-                            return resLower.includes(filterLower) || resLower.includes(displayLower) || (filterLower === 'test' && resLower === 'test');
-                        });
+                        // 🌟 ใช้ฟังก์ชัน isUserMatch ที่รองรับ aliases
+                        data = data.filter(r => isUserMatch(r.responsible, loggedInUser));
                     } else if (loggedInUser.role === 'approver1') {
                         // approver1 ดูงานตัวเอง และดูของลูกทีมได้ใน Dashboard
                         data = data.filter(r => {
-                            if (!r.responsible) return false;
-                            const resLower = r.responsible.toLowerCase();
-                            const filterLower = loggedInUser.filterName.toLowerCase();
-                            const displayLower = loggedInUser.displayName.toLowerCase();
-                            
-                            const isSelf = resLower.includes(filterLower) || resLower.includes(displayLower);
+                            const isSelf = isUserMatch(r.responsible, loggedInUser);
                             const isTeam = getTeamFromResponsible(r.responsible) === loggedInUser.approveTeam;
                             return isSelf || isTeam;
                         });
@@ -540,10 +577,11 @@
                     timeMatch = d.getFullYear() === now.getFullYear();
                 }
 
-                // 2. User Filter
+                // 2. User Filter (อัปเดตให้รองรับ Aliases)
                 let userMatch = true;
                 if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') && selectedUserFilter) {
-                    userMatch = r.responsible && r.responsible.toLowerCase().includes(selectedUserFilter.toLowerCase());
+                    const filteredUserObj = APP_USERS[selectedUserFilter];
+                    userMatch = filteredUserObj ? isUserMatch(r.responsible, filteredUserObj) : false;
                 }
 
                 // 3. Team Filter (Admin)
@@ -569,14 +607,7 @@
             // 🌟 แยกประวัติงานสำหรับหน้า History ให้เห็นเฉพาะของตัวเอง ยกเว้น Admin และ Approver2 ให้ดูได้หมด
             const historyRecords = filteredRecords.filter(r => {
                 if (loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') return true;
-                if (!r.responsible) return false;
-                
-                const resLower = r.responsible.toLowerCase();
-                const filterLower = loggedInUser.filterName.toLowerCase();
-                const displayLower = loggedInUser.displayName.toLowerCase();
-                
-                // รองรับการค้นหาทั้ง filterName (เช่น test) และ displayName (เช่น test.user)
-                return resLower.includes(filterLower) || resLower.includes(displayLower) || (filterLower === 'test' && resLower === 'test');
+                return isUserMatch(r.responsible, loggedInUser);
             });
 
             const shortCount = filteredRecords.filter(r => r.jobType?.includes('Short')).length;
@@ -749,14 +780,7 @@
                         shouldSee = r.status === 'pending_2';
                     } else if (loggedInUser.role === 'approver1') {
                         const recordTeam = getTeamFromResponsible(r.responsible);
-                        if (!r.responsible) return;
-                        
-                        const resLower = r.responsible.toLowerCase();
-                        const filterLower = loggedInUser.filterName.toLowerCase();
-                        const displayLower = loggedInUser.displayName.toLowerCase();
-                        
-                        const isSelf = resLower.includes(filterLower) || resLower.includes(displayLower);
-                        
+                        const isSelf = isUserMatch(r.responsible, loggedInUser);
                         if (recordTeam === loggedInUser.approveTeam && r.status === 'pending_1' && !isSelf) {
                             shouldSee = true;
                         }
@@ -1483,7 +1507,7 @@
 
                             // กำหนดสิทธิ์ให้ลบแก้ได้เฉพาะงานตัวเองที่เป็นร่าง หรือถูกตีกลับ (Admin แก้ได้หมด)
                             const isDraftOrRejected = !record.status || record.status === 'draft' || record.status === 'rejected';
-                            const isSelf = record.responsible && record.responsible.toLowerCase().includes(loggedInUser.filterName.toLowerCase());
+                            const isSelf = isUserMatch(record.responsible, loggedInUser);
                             const isAdmin = loggedInUser.role === 'admin';
                             const canEditDelete = isAdmin || (isSelf && isDraftOrRejected);
 
@@ -1622,14 +1646,7 @@
                         shouldSee = r.status === 'pending_2';
                     } else if (loggedInUser.role === 'approver1') {
                         const recordTeam = getTeamFromResponsible(r.responsible);
-                        if (!r.responsible) return;
-                        
-                        const resLower = r.responsible.toLowerCase();
-                        const filterLower = loggedInUser.filterName.toLowerCase();
-                        const displayLower = loggedInUser.displayName.toLowerCase();
-                        
-                        const isSelf = resLower.includes(filterLower) || resLower.includes(displayLower);
-                        
+                        const isSelf = isUserMatch(r.responsible, loggedInUser);
                         if (recordTeam === loggedInUser.approveTeam && r.status === 'pending_1' && !isSelf) {
                             shouldSee = true;
                         }
