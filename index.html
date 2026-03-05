@@ -111,37 +111,40 @@
         // --- ฐานข้อมูลผู้ใช้งาน (อัปเดต Roles และ Teams สำหรับระบบ Approve) ---
         const APP_USERS = {
             'admin':       { pass: 'admin1234', role: 'admin', filterName: 'admin', displayName: 'Administrator', team: 'Admin' },
-			'teerapong.t': { pass: 'teerapong.t1234', role: 'approver2', filterName: 'teerapong', displayName: 'Teerapong.T', team: 'Admin' }, // Approve 2
-			'narinsak.s':  { pass: 'narinsak.s1234', role: 'approver1', filterName: 'narinsak', displayName: 'Narinsak.S', team: 'Interruption', approveTeam: 'Interruption' }, // Approve 1
+			'teerapong.t': { pass: 'teerapong.t1234', role: 'approver2', filterName: 'teerapong.t', displayName: 'Teerapong.T', team: 'Admin', email: 'teerapong.t@symphony.net.th' }, // Approve 2
+			'narinsak.s':  { pass: 'narinsak.s1234', role: 'approver1', filterName: 'narinsak.s', displayName: 'Narinsak.S', team: 'Interruption', approveTeam: 'Interruption', email: 'narinsak.s@symphony.net.th' }, // Approve 1
             
+            // 🌟 บัญชีสำหรับทดสอบระบบ
+            'test':        { pass: 'test1234', role: 'user', filterName: 'test', displayName: 'Test.User', team: 'Interruption' },
+
             // ทีม Interruption
-            'noppadol.m':  { pass: 'noppadol.m1234', role: 'user', filterName: 'noppadol', displayName: 'Noppadol.M', team: 'Interruption' },
-            'arttapon.j':  { pass: 'arttapon.j1234', role: 'user', filterName: 'arttapon', displayName: 'Arttapon.J', team: 'Interruption' },
-            'phanuwat.p':  { pass: 'phanuwat.p1234', role: 'user', filterName: 'phanuwat', displayName: 'Phanuwat.P', team: 'Interruption' },
-            'kittipoom.b': { pass: 'kittipoom.b1234', role: 'user', filterName: 'kittipoom', displayName: 'Kittipoom.P', team: 'Interruption' },
-            'amnat.s':     { pass: 'amnat.s1234', role: 'user', filterName: 'amnat', displayName: 'Amnat.S', team: 'Interruption' },
-			'nattawut.p':  { pass: 'nattawut.p1234', role: 'user', filterName: 'nattawut', displayName: 'Nattawut.P', team: 'Interruption' },
+            'noppadol.m':  { pass: 'noppadol.m1234', role: 'user', filterName: 'noppadol.m', displayName: 'Noppadol.M', team: 'Interruption' },
+            'arttapon.j':  { pass: 'arttapon.j1234', role: 'user', filterName: 'arttapon.j', displayName: 'Arttapon.J', team: 'Interruption' },
+            'phanuwat.p':  { pass: 'phanuwat.p1234', role: 'user', filterName: 'phanuwat.p', displayName: 'Phanuwat.P', team: 'Interruption' },
+            'kittipoom.b': { pass: 'kittipoom.b1234', role: 'user', filterName: 'kittipoom.b', displayName: 'Kittipoom.B', team: 'Interruption' },
+            'amnat.s':     { pass: 'amnat.s1234', role: 'user', filterName: 'amnat.s', displayName: 'Amnat.S', team: 'Interruption' },
+			'nattawut.p':  { pass: 'nattawut.p1234', role: 'user', filterName: 'nattawut.p', displayName: 'Nattawut.P', team: 'Interruption' },
 			
             // ทีม Corrective 1
-            'apiwat.s':    { pass: 'apiwat.s1234', role: 'approver1', filterName: 'apiwat', displayName: 'Apiwat.S', team: 'Corrective 1', approveTeam: 'Corrective 1' }, // Approve 1
-            'theeti.t':    { pass: 'theeti.t1234', role: 'user', filterName: 'theeti', displayName: 'Theeti.T', team: 'Corrective 1' },
-            'sawanat.u':   { pass: 'sawanat.u1234', role: 'user', filterName: 'sawanat', displayName: 'Sawanat.U', team: 'Corrective 1' },
-			'rungrueang.a':{ pass: 'rungrueang.a1234', role: 'user', filterName: 'rungrueang', displayName: 'Rungrueang.A', team: 'Corrective 1' },
-			'marttaphum.h':{ pass: 'marttaphum.h1234', role: 'user', filterName: 'marttaphum', displayName: 'Marttaphum.H', team: 'Corrective 1' },
+            'apiwat.s':    { pass: 'apiwat.s1234', role: 'approver1', filterName: 'apiwat.s', displayName: 'Apiwat.S', team: 'Corrective 1', approveTeam: 'Corrective 1', email: 'apiwat.s@symphony.net.th' }, // Approve 1
+            'theeti.t':    { pass: 'theeti.t1234', role: 'user', filterName: 'theeti.t', displayName: 'Theeti.T', team: 'Corrective 1' },
+            'sawanat.u':   { pass: 'sawanat.u1234', role: 'user', filterName: 'sawanat.u', displayName: 'Sawanat.U', team: 'Corrective 1' },
+			'rungrueang.a':{ pass: 'rungrueang.a1234', role: 'user', filterName: 'rungrueang.a', displayName: 'Rungrueang.A', team: 'Corrective 1' },
+			'marttaphum.h':{ pass: 'marttaphum.h1234', role: 'user', filterName: 'marttaphum.h', displayName: 'Marttaphum.H', team: 'Corrective 1' },
             
             // ทีม Corrective 2
-			'nattakarn.p': { pass: 'nattakarn.p1234', role: 'approver1', filterName: 'nattakarn', displayName: 'Nattakarn.P', team: 'Corrective 2', approveTeam: 'Corrective 2' }, // Approve 1
-			'rachatat.t':  { pass: 'rachatat.t1234', role: 'user', filterName: 'rachatat', displayName: 'Rachatat.T', team: 'Corrective 2' },
-			'pasakorn.p':  { pass: 'pasakorn.p1234', role: 'user', filterName: 'pasakorn', displayName: 'Pasakorn.P', team: 'Corrective 2' },
-			'natapon.y':   { pass: 'natapon.y1234', role: 'user', filterName: 'natapon', displayName: 'Natapon.Y', team: 'Corrective 2' },
-			'kanok.m':     { pass: 'kanok.m1234', role: 'user', filterName: 'kanok', displayName: 'Kanok.M', team: 'Corrective 2' },
+			'nattakarn.p': { pass: 'nattakarn.p1234', role: 'approver1', filterName: 'nattakarn.p', displayName: 'Nattakarn.P', team: 'Corrective 2', approveTeam: 'Corrective 2', email: 'nattakarn.p@symphony.net.th' }, // Approve 1
+			'rachatat.t':  { pass: 'rachatat.t1234', role: 'user', filterName: 'rachatat.t', displayName: 'Rachatat.T', team: 'Corrective 2' },
+			'pasakorn.p':  { pass: 'pasakorn.p1234', role: 'user', filterName: 'pasakorn.p', displayName: 'Pasakorn.P', team: 'Corrective 2' },
+			'natapon.y':   { pass: 'natapon.y1234', role: 'user', filterName: 'natapon.y', displayName: 'Natapon.Y', team: 'Corrective 2' },
+			'kanok.m':     { pass: 'kanok.m1234', role: 'user', filterName: 'kanok.m', displayName: 'Kanok.M', team: 'Corrective 2' },
             
             // ทีม Corrective 3
-            'prachin.b':   { pass: 'prachin.b1234', role: 'approver1', filterName: 'prachin', displayName: 'Prachin.B', team: 'Corrective 3', approveTeam: 'Corrective 3' }, // Approve 1
-            'apisit.p':    { pass: 'apisit.p1234', role: 'user', filterName: 'apisit', displayName: 'Apisit.P', team: 'Corrective 3' },
-			'seksan.i':    { pass: 'seksan.i1234', role: 'user', filterName: 'seksan', displayName: 'Seksan.I', team: 'Corrective 3' },
-			'akarapon.a':  { pass: 'akarapon.a1234', role: 'user', filterName: 'akarapon', displayName: 'Akarapon.A', team: 'Corrective 3' },
-			'yossatorn.y': { pass: 'yossatorn.y1234', role: 'user', filterName: 'yossatorn', displayName: 'Yossatorn.Y', team: 'Corrective 3' }
+            'prachin.b':   { pass: 'prachin.b1234', role: 'approver1', filterName: 'prachin.b', displayName: 'Prachin.B', team: 'Corrective 3', approveTeam: 'Corrective 3', email: 'prachin.b@symphony.net.th' }, // Approve 1
+            'apisit.p':    { pass: 'apisit.p1234', role: 'user', filterName: 'apisit.p', displayName: 'Apisit.P', team: 'Corrective 3' },
+			'seksan.i':    { pass: 'seksan.i1234', role: 'user', filterName: 'seksan.i', displayName: 'Seksan.I', team: 'Corrective 3' },
+			'akarapon.a':  { pass: 'akarapon.a1234', role: 'user', filterName: 'akarapon.a', displayName: 'Akarapon.A', team: 'Corrective 3' },
+			'yossatorn.y': { pass: 'yossatorn.y1234', role: 'user', filterName: 'yossatorn.y', displayName: 'Yossatorn.Y', team: 'Corrective 3' }
         };
 
         // 🌟 Helper Functions
@@ -175,14 +178,29 @@
             return `${start.toLocaleDateString('th-TH', formatOpt)} - ${end.toLocaleDateString('th-TH', formatOptYear)}`;
         };
 
+        // 🌟 แก้ไข: ฟังก์ชันแปลง URL รูปภาพของ Google Drive ให้แสดงผลได้บนเว็บ
         const getDisplayImageUrl = (url) => {
             if (!url) return '';
             try {
-                if (url.includes('drive.google.com/uc?id=')) {
-                    const id = new URL(url).searchParams.get('id');
-                    if(id) return `https://drive.google.com/thumbnail?id=${id}&sz=w800`;
+                // ถ้าเป็น URL ของ Google Drive แบบเก่า
+                if (url.includes('drive.google.com') && url.includes('id=')) {
+                    const urlObj = new URL(url);
+                    const fileId = urlObj.searchParams.get('id');
+                    // ใช้ URL โครงสร้างใหม่ที่เสถียรกว่า (lh3.googleusercontent.com/d/...)
+                    if (fileId) {
+                        return `https://lh3.googleusercontent.com/d/${fileId}`;
+                    }
                 }
-            } catch(e) {}
+                // ถ้าเป็น URL รูปแบบอื่นของ Google Drive
+                else if (url.includes('drive.google.com/file/d/')) {
+                    const fileId = url.split('/d/')[1].split('/')[0];
+                    if (fileId) {
+                        return `https://lh3.googleusercontent.com/d/${fileId}`;
+                    }
+                }
+            } catch(e) {
+                console.error("Error formatting image URL:", e);
+            }
             return url;
         };
 
@@ -271,6 +289,7 @@
                                     <select value={adminTeamFilter} onChange={e => {setAdminTeamFilter(e.target.value); setSelectedUserFilter('');}} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
                                         <option value="">ทุกทีม</option>
                                         <option value="Interruption">ทีม Interruption</option>
+                                        <option value="All Corrective">รวม Corrective (1, 2, 3)</option>
                                         <option value="Corrective 1">ทีม Corrective 1</option>
                                         <option value="Corrective 2">ทีม Corrective 2</option>
                                         <option value="Corrective 3">ทีม Corrective 3</option>
@@ -281,7 +300,14 @@
                                     <select value={selectedUserFilter} onChange={e => setSelectedUserFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
                                         <option value="">ทุกคน</option>
                                         {Object.values(APP_USERS)
-                                            .filter(u => (u.role === 'user' || u.role === 'approver1') && (adminTeamFilter ? u.team === adminTeamFilter : true))
+                                            .filter(u => {
+                                                if (u.role !== 'user' && u.role !== 'approver1') return false;
+                                                if (!adminTeamFilter) return true;
+                                                if (adminTeamFilter === 'All Corrective') {
+                                                    return u.team && u.team.startsWith('Corrective');
+                                                }
+                                                return u.team === adminTeamFilter;
+                                            })
                                             .map(u => <option key={u.filterName} value={u.filterName}>{u.displayName}</option>)}
                                     </select>
                                 </div>
@@ -314,6 +340,7 @@
             const [showForm, setShowForm] = useState(false);
             const [editingRecord, setEditingRecord] = useState(null);
             
+            // 🌟 แก้ไข: กลับมาใช้ค่าเริ่มต้นเป็น 'month' และแสดงเดือนปัจจุบัน
             const [timeFilterType, setTimeFilterType] = useState('month'); 
             const [selectedMonth, setSelectedMonth] = useState(() => {
                 const now = new Date();
@@ -374,11 +401,24 @@
                     
                     // Filter สำหรับดึงเข้า State หลัก (Dashboard)
                     if (loggedInUser.role === 'user') {
-                        data = data.filter(r => r.responsible && r.responsible.toLowerCase().includes(loggedInUser.filterName.toLowerCase()));
+                        // 🌟 แก้ไข Logic การ Filter สำหรับ User ให้ยืดหยุ่นขึ้น (หาทั้ง filterName และ displayName)
+                        data = data.filter(r => {
+                            if (!r.responsible) return false;
+                            const resLower = r.responsible.toLowerCase();
+                            const filterLower = loggedInUser.filterName.toLowerCase();
+                            const displayLower = loggedInUser.displayName.toLowerCase();
+                            // ลองเช็คดูว่า User กรอกชื่อตอนสมัครเป็นอะไรกันแน่
+                            return resLower.includes(filterLower) || resLower.includes(displayLower) || (filterLower === 'test' && resLower === 'test');
+                        });
                     } else if (loggedInUser.role === 'approver1') {
                         // approver1 ดูงานตัวเอง และดูของลูกทีมได้ใน Dashboard
                         data = data.filter(r => {
-                            const isSelf = r.responsible && r.responsible.toLowerCase().includes(loggedInUser.filterName.toLowerCase());
+                            if (!r.responsible) return false;
+                            const resLower = r.responsible.toLowerCase();
+                            const filterLower = loggedInUser.filterName.toLowerCase();
+                            const displayLower = loggedInUser.displayName.toLowerCase();
+                            
+                            const isSelf = resLower.includes(filterLower) || resLower.includes(displayLower);
                             const isTeam = getTeamFromResponsible(r.responsible) === loggedInUser.approveTeam;
                             return isSelf || isTeam;
                         });
@@ -510,7 +550,11 @@
                 let teamMatch = true;
                 if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') && adminTeamFilter) {
                     const recordTeam = getTeamFromResponsible(r.responsible);
-                    teamMatch = recordTeam === adminTeamFilter;
+                    if (adminTeamFilter === 'All Corrective') {
+                        teamMatch = recordTeam.startsWith('Corrective');
+                    } else {
+                        teamMatch = recordTeam === adminTeamFilter;
+                    }
                 }
 
                 // 4. Job Type Filter (Admin)
@@ -525,7 +569,14 @@
             // 🌟 แยกประวัติงานสำหรับหน้า History ให้เห็นเฉพาะของตัวเอง ยกเว้น Admin และ Approver2 ให้ดูได้หมด
             const historyRecords = filteredRecords.filter(r => {
                 if (loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') return true;
-                return r.responsible && r.responsible.toLowerCase().includes(loggedInUser.filterName.toLowerCase());
+                if (!r.responsible) return false;
+                
+                const resLower = r.responsible.toLowerCase();
+                const filterLower = loggedInUser.filterName.toLowerCase();
+                const displayLower = loggedInUser.displayName.toLowerCase();
+                
+                // รองรับการค้นหาทั้ง filterName (เช่น test) และ displayName (เช่น test.user)
+                return resLower.includes(filterLower) || resLower.includes(displayLower) || (filterLower === 'test' && resLower === 'test');
             });
 
             const shortCount = filteredRecords.filter(r => r.jobType?.includes('Short')).length;
@@ -553,33 +604,43 @@
                 
                 // กำหนดสถานะเริ่มต้นเป็นร่าง (Draft) ถ้ายังไม่มี
                 const recordToSave = { ...newRecord, status: newRecord.status || 'draft' };
+                const newId = editingRecord ? editingRecord.id : Date.now().toString();
+                const nowIso = new Date().toISOString();
+                
+                // 🌟 Optimistic Update: อัปเดตหน้าจอให้ผู้ใช้เห็นทันทีก่อนรอ Cloud ตอบกลับ
+                const updatedRecord = { 
+                    ...recordToSave, 
+                    id: newId, 
+                    createdAt: editingRecord ? (editingRecord.createdAt || nowIso) : nowIso,
+                    updatedAt: editingRecord ? nowIso : undefined
+                };
+
+                if (editingRecord) {
+                    setRecords(prev => prev.map(r => r.id === newId ? updatedRecord : r));
+                    setAllRecords(prev => prev.map(r => r.id === newId ? updatedRecord : r));
+                } else {
+                    setRecords(prev => [updatedRecord, ...prev]);
+                    setAllRecords(prev => [updatedRecord, ...prev]);
+                }
                 
                 if (dbStatus === 'local_only' || !user) {
-                    if (editingRecord) {
-                        setRecords(records.map(r => r.id === editingRecord.id ? { ...recordToSave, id: r.id, createdAt: r.createdAt } : r));
-                        setAllRecords(allRecords.map(r => r.id === editingRecord.id ? { ...recordToSave, id: r.id, createdAt: r.createdAt } : r));
-                    } else {
-                        setRecords([{ ...recordToSave, id: Date.now().toString(), createdAt: new Date().toISOString() }, ...records]);
-                        setAllRecords([{ ...recordToSave, id: Date.now().toString(), createdAt: new Date().toISOString() }, ...allRecords]);
-                    }
-                    return;
+                    return; // บันทึกในโหมดจำลองเรียบร้อยแล้ว
                 }
 
                 setDbStatus('connecting'); 
-                const recordsRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records');
                 
                 try {
+                    const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records', newId);
                     if (editingRecord) {
-                        const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records', editingRecord.id);
-                        await updateDoc(docRef, { ...recordToSave, updatedAt: new Date().toISOString() });
+                        await updateDoc(docRef, { ...recordToSave, updatedAt: nowIso });
                     } else {
-                        const newId = Date.now().toString();
-                        const docRef = doc(recordsRef, newId);
-                        await setDoc(docRef, { ...recordToSave, createdAt: new Date().toISOString() });
+                        await setDoc(docRef, { ...recordToSave, createdAt: nowIso });
                     }
                     setDbStatus('connected');
                 } catch (err) {
+                    console.error("Firebase Save Error:", err);
                     setDbStatus('local_only');
+                    alert("⚠️ ไม่สามารถบันทึกข้อมูลลง Cloud ได้ (อาจเกิดจากอินเทอร์เน็ตขัดข้อง หรือสิทธิ์ Firebase ถูกบล็อก)\n\nระบบได้ทำการบันทึกข้อมูลแบบ Offline ไว้ในหน้าจอให้ชั่วคราวแล้วครับ");
                 }
             };
 
@@ -615,8 +676,37 @@
 
             // 🌟 ฟังก์ชันอัปเดตสถานะแบบกลุ่ม (Submit, Approve, Reject)
             const handleBatchStatusUpdate = async (recordsToUpdate, newStatus, reason = '') => {
-                if (!user || dbStatus === 'local_only' || recordsToUpdate.length === 0) return;
+                if (recordsToUpdate.length === 0) return;
                 setIsBatchUpdating(true);
+
+                // 🌟 เพิ่ม Fallback สำหรับโหมด Offline / จำลอง (Local Only) ให้แสดงผลได้ทันทีโดยไม่ต้องรอฐานข้อมูล
+                if (!user || dbStatus === 'local_only') {
+                    const idsToUpdate = recordsToUpdate.map(r => r.id);
+                    const updateLocalData = (r) => {
+                        if (idsToUpdate.includes(r.id)) {
+                            const updated = { ...r, status: newStatus, updatedAt: new Date().toISOString() };
+                            if (reason) updated.rejectReason = reason;
+                            if (newStatus === 'pending_1' || newStatus === 'pending_2' || newStatus === 'completed') {
+                                updated.rejectReason = '';
+                            }
+                            if (newStatus === 'completed') {
+                                updated.approvedBy = loggedInUser.displayName;
+                                updated.approveDate = new Date().toISOString();
+                            } else if (newStatus === 'rejected') {
+                                updated.rejectedBy = loggedInUser.displayName;
+                                updated.rejectDate = new Date().toISOString();
+                            }
+                            return updated;
+                        }
+                        return r;
+                    };
+                    
+                    setRecords(records.map(updateLocalData));
+                    setAllRecords(allRecords.map(updateLocalData));
+                    setIsBatchUpdating(false);
+                    return;
+                }
+
                 try {
                     for (const r of recordsToUpdate) {
                         const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records', r.id);
@@ -627,12 +717,9 @@
                             updateData.rejectReason = ''; // เคลียร์เหตุผลเมื่อมีการส่งใหม่หรือผ่านการอนุมัติ
                         }
                         
-                        if (newStatus === 'pending_2') {
-                            updateData.approvedBy1 = loggedInUser.displayName;
-                            updateData.approveDate1 = new Date().toISOString();
-                        } else if (newStatus === 'completed') {
-                            updateData.approvedBy2 = loggedInUser.displayName;
-                            updateData.approveDate2 = new Date().toISOString();
+                        if (newStatus === 'completed') {
+                            updateData.approvedBy = loggedInUser.displayName;
+                            updateData.approveDate = new Date().toISOString();
                         } else if (newStatus === 'rejected') {
                             updateData.rejectedBy = loggedInUser.displayName;
                             updateData.rejectDate = new Date().toISOString();
@@ -662,7 +749,15 @@
                         shouldSee = r.status === 'pending_2';
                     } else if (loggedInUser.role === 'approver1') {
                         const recordTeam = getTeamFromResponsible(r.responsible);
-                        if (recordTeam === loggedInUser.approveTeam && r.status === 'pending_1') {
+                        if (!r.responsible) return;
+                        
+                        const resLower = r.responsible.toLowerCase();
+                        const filterLower = loggedInUser.filterName.toLowerCase();
+                        const displayLower = loggedInUser.displayName.toLowerCase();
+                        
+                        const isSelf = resLower.includes(filterLower) || resLower.includes(displayLower);
+                        
+                        if (recordTeam === loggedInUser.approveTeam && r.status === 'pending_1' && !isSelf) {
                             shouldSee = true;
                         }
                     }
@@ -822,6 +917,7 @@
                             selectedWeek={selectedWeek}
                             timeFilterType={timeFilterType}
                             allRecords={allRecords}
+                            loggedInUser={loggedInUser}
                         />
                     )}
                     </div>
@@ -1272,22 +1368,75 @@
         }
 
         // 🌟 Helper เพื่อจัดสไตล์ให้ป้าย Status
-        function StatusBadge({ status, rejectReason }) {
-            if (status === 'pending_1') return <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold border border-amber-200"><Clock size={10} /> รออนุมัติ (หัวหน้า)</span>;
-            if (status === 'pending_2') return <span className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200"><Clock size={10} /> รออนุมัติ (Teelapong)</span>;
+        function StatusBadge({ status, rejectReason, responsibleName }) {
+            let approverName = "หัวหน้า";
+            if (responsibleName) {
+                const team = getTeamFromResponsible(responsibleName);
+                const approver = Object.values(APP_USERS).find(u => u.role === 'approver1' && u.approveTeam === team);
+                if (approver) {
+                    approverName = approver.displayName;
+                }
+            }
+
+            if (status === 'pending_1') return <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-bold border border-amber-200"><Clock size={10} /> รออนุมัติ ({approverName})</span>;
+            if (status === 'pending_2') return <span className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200"><Clock size={10} /> รออนุมัติ (Teerapong)</span>;
             if (status === 'completed') return <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200"><CheckCircle2 size={10} /> อนุมัติแล้ว</span>;
-            if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200" title={rejectReason}><XCircle size={10} /> Reject</span>;
+            if (status === 'rejected') return <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200" title={rejectReason}><XCircle size={10} /> ถูกตีกลับ</span>;
             return <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200">ร่าง (ยังไม่ส่ง)</span>;
         }
 
         function HistoryList({ records, onDelete, onEdit, allRecords, loggedInUser, selectedMonth, timeFilterType, onBatchUpdate, isBatchUpdating }) {
+            const [showConfirmModal, setShowConfirmModal] = useState(false); // 🌟 เพิ่ม State สำหรับเปิด/ปิดป๊อปอัปยืนยัน
+
             // เช็คว่ามีงานของเดือนที่เลือก ซึ่งยังไม่ได้ส่ง หรือโดนตีกลับ ไหม
             const draftRecords = records.filter(r => !r.status || r.status === 'draft' || r.status === 'rejected');
             const canSubmit = timeFilterType === 'month' && selectedMonth && draftRecords.length > 0 && loggedInUser.role !== 'admin' && loggedInUser.role !== 'approver2';
 
             const handleSubmitOT = () => {
-                if(confirm(`ยืนยันการส่งขออนุมัติ OT ประจำเดือน ${formatMonth(selectedMonth)}?\n(จำนวน ${draftRecords.length} รายการ)\n\nเมื่อส่งแล้วจะไม่สามารถแก้ไขข้อมูลได้จนกว่าจะถูก Reject`)) {
-                    onBatchUpdate(draftRecords, 'pending_1');
+                setShowConfirmModal(true); // 🌟 เปลี่ยนจากการใช้ confirm() มาเป็นการเปิดป๊อปอัป
+            };
+
+            const executeSubmitOT = async () => {
+                setShowConfirmModal(false);
+                const newStatus = loggedInUser.role === 'approver1' ? 'pending_2' : 'pending_1';
+                await onBatchUpdate(draftRecords, newStatus);
+                
+                // 🌟 ระบบส่ง Email แจ้งเตือนเมื่อกดส่งขออนุมัติ
+                try {
+                    let targetEmail = '';
+                    let approverName = '';
+                    
+                    if (newStatus === 'pending_1') {
+                        // หา Approver 1 ประจำทีม
+                        const approver = Object.values(APP_USERS).find(u => u.role === 'approver1' && u.approveTeam === loggedInUser.team);
+                        targetEmail = approver?.email;
+                        approverName = approver?.displayName;
+                    } else if (newStatus === 'pending_2') {
+                        // หา Approver 2 (teerapong.t)
+                        const approver = Object.values(APP_USERS).find(u => u.role === 'approver2');
+                        targetEmail = approver?.email;
+                        approverName = approver?.displayName;
+                    }
+
+                    if (targetEmail) {
+                        const monthLabel = formatMonth(selectedMonth);
+                        const subject = `รบกวนพิจารณาค่าดำเนินการล่วงเวลา OT ประจำเดือน : ${monthLabel} ของ ${loggedInUser.displayName}`;
+                        
+                        // จัดเรียงรายละเอียดงานเบื้องต้น
+                        const jobDetails = draftRecords.map((r, i) => `${i+1}. ${r.date} - ${r.location} - ${r.jobType.split('(')[0].trim()}`).join('\n');
+                        
+                        // 🌟 แก้ไขรูปแบบข้อความในอีเมลและเพิ่มส่วนท้าย
+                        const body = `เรียนคุณ ${approverName || 'ผู้อนุมัติ'},\n\nมีการส่งคำขออนุมัติค่าดำเนินการล่วงเวลา (OT) ประจำเดือน ${monthLabel} จากคุณ ${loggedInUser.displayName}\n\nรายละเอียดงาน:\n${jobDetails}\n\nกรุณาเข้าสู่ระบบ OT Tracker เพื่อตรวจสอบรายละเอียดและดำเนินการอนุมัติ หรือตีกลับ\nlink เว็ป = https://sambitao.github.io/OT-System/\n\n(อีเมลฉบับนี้เป็นการแจ้งเตือนอัตโนมัติจากระบบ OT Tracker)`;
+
+                        // ยิง Request ไปหา GAS เพื่อสั่งให้ส่ง Email
+                        fetch(GAS_WEBHOOK_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'send_email', to: targetEmail, subject: subject, body: body }),
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                        }).catch(err => console.log("แจ้งเตือน: ไม่สามารถส่งอีเมลในโหมดจำลองได้", err));
+                    }
+                } catch (e) {
+                    console.error("Email notification error:", e);
                 }
             };
 
@@ -1343,7 +1492,7 @@
                                 <td className="px-6 py-4">
                                 <div className="font-bold text-slate-800 break-words whitespace-pre-wrap">{record.interruption}</div>
                                 <div className="text-[10px] text-slate-500 flex items-center gap-2 mt-1.5 flex-wrap">
-                                    <StatusBadge status={record.status} rejectReason={record.rejectReason} />
+                                    <StatusBadge status={record.status} rejectReason={record.rejectReason} responsibleName={record.responsible} />
                                     <span className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 rounded uppercase font-bold text-slate-600">{record.jobType?.split('(')[1]?.replace(')', '') || record.jobType}</span>
                                     <span className="font-medium">ID: {record.interruptionId || '-'}</span>
                                 </div>
@@ -1397,7 +1546,7 @@
                         {records.length === 0 && (
                             <tr>
                             <td colSpan="5" className="px-6 py-12 text-center text-slate-400 italic font-medium">
-                                ไม่พบรายการข้อมูลในบัญชี หรือไม่พบข้อมูลตามตัวกรองที่เลือก
+                                ไม่พบรายการข้อมูลในบัญชี หรือถูกซ่อนไว้โดยตัวกรองเวลา (ลองปรับช่วงเวลาด้านบนเป็น "ทั้งหมด")
                             </td>
                             </tr>
                         )}
@@ -1426,6 +1575,28 @@
                         </button>
                     </div>
                 )}
+
+                {/* 🌟 ป๊อปอัปยืนยันการส่งขออนุมัติ */}
+                {showConfirmModal && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)}></div>
+                        <div className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center border border-slate-200 animate-in zoom-in-95 duration-200">
+                            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 border-[6px] border-white shadow-sm">
+                                <Send size={36} />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-800 mb-2">ยืนยันการส่งขออนุมัติ?</h3>
+                            <p className="text-sm text-slate-500 mb-8 font-medium px-4">
+                                ประจำเดือน {formatMonth(selectedMonth)} (จำนวน {draftRecords.length} รายการ)<br/><br/>เมื่อส่งแล้วจะไม่สามารถแก้ไขข้อมูลได้จนกว่าจะถูกตีกลับ
+                            </p>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                                <button onClick={executeSubmitOT} disabled={isBatchUpdating} className="flex-1 px-4 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-600/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">
+                                    {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> ยืนยันส่ง</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 </div>
             );
         }
@@ -1434,7 +1605,9 @@
         function ApprovalDashboard({ allRecords, loggedInUser, onBatchUpdate, isBatchUpdating, getRecordDateObj, getSortValue, getTeamFromResponsible }) {
             const [rejectModalGroup, setRejectModalGroup] = useState(null);
             const [rejectReasonText, setRejectReasonText] = useState('');
-            const [viewingGroup, setViewingGroup] = useState(null); // 🌟 State สำหรับเปิดดูรายละเอียดงาน
+            const [rejectError, setRejectError] = useState(''); // 🌟 เพิ่มแจ้งเตือนถ้าลืมใส่เหตุผลตีกลับ
+            const [viewingGroup, setViewingGroup] = useState(null); 
+            const [confirmApproveGroup, setConfirmApproveGroup] = useState(null); // 🌟 State สำหรับป๊อปอัปอนุมัติ
 
             // ดึงข้อมูลที่รออนุมัติทั้งหมด
             const getPendingGroups = () => {
@@ -1449,7 +1622,15 @@
                         shouldSee = r.status === 'pending_2';
                     } else if (loggedInUser.role === 'approver1') {
                         const recordTeam = getTeamFromResponsible(r.responsible);
-                        if (recordTeam === loggedInUser.approveTeam && r.status === 'pending_1') {
+                        if (!r.responsible) return;
+                        
+                        const resLower = r.responsible.toLowerCase();
+                        const filterLower = loggedInUser.filterName.toLowerCase();
+                        const displayLower = loggedInUser.displayName.toLowerCase();
+                        
+                        const isSelf = resLower.includes(filterLower) || resLower.includes(displayLower);
+                        
+                        if (recordTeam === loggedInUser.approveTeam && r.status === 'pending_1' && !isSelf) {
                             shouldSee = true;
                         }
                     }
@@ -1488,17 +1669,24 @@
             const groups = getPendingGroups();
 
             const handleApprove = (group) => {
-                const newStatus = group.status === 'pending_1' ? 'pending_2' : 'completed';
-                const levelText = group.status === 'pending_1' ? 'ขั้นที่ 1 (ส่งต่อให้ Teerapong)' : 'ขั้นที่ 2 (เสร็จสมบูรณ์)';
-                if(confirm(`ยืนยันการ "อนุมัติ" OT ของ ${group.responsible} ประจำเดือน ${formatMonth(group.month)}\n\nระบบจะปรับสถานะเป็น: ${levelText}`)) {
-                    onBatchUpdate(group.records, newStatus);
-                    setViewingGroup(null); // ปิดหน้าต่างรายละเอียดถ้าเปิดอยู่
-                }
+                setConfirmApproveGroup(group); // 🌟 เปลี่ยนจาก confirm() มาเปิดป๊อปอัปแทน
+            };
+
+            const executeApprove = () => {
+                if (!confirmApproveGroup) return;
+                const newStatus = 'completed';
+                onBatchUpdate(confirmApproveGroup.records, newStatus);
+                setViewingGroup(null);
+                setConfirmApproveGroup(null);
             };
 
             const confirmReject = (e) => {
                 e.preventDefault();
-                if (!rejectReasonText.trim()) return alert("กรุณาระบุเหตุผลการตีกลับ");
+                setRejectError('');
+                if (!rejectReasonText.trim()) {
+                    setRejectError('กรุณาระบุเหตุผลการตีกลับ');
+                    return;
+                }
                 onBatchUpdate(rejectModalGroup.records, 'rejected', rejectReasonText);
                 setRejectModalGroup(null);
                 setRejectReasonText('');
@@ -1529,7 +1717,7 @@
                                                 <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{getTeamFromResponsible(g.responsible)} Team</div>
                                             </div>
                                         </div>
-                                        <StatusBadge status={g.status} />
+                                        <StatusBadge status={g.status} responsibleName={g.responsible} />
                                     </div>
                                     
                                     <div className="bg-slate-50 rounded-xl p-3 mb-5 border border-slate-100 flex items-center justify-between">
@@ -1582,7 +1770,7 @@
 
                     {rejectModalGroup && (
                         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setRejectModalGroup(null)}></div>
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setRejectModalGroup(null); setRejectError(''); }}></div>
                             <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 md:p-8 border border-slate-200 animate-in zoom-in-95 duration-200">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center border border-red-100">
@@ -1594,7 +1782,8 @@
                                     </div>
                                 </div>
 
-                                <form onSubmit={confirmReject} className="space-y-5">
+                                <form onSubmit={confirmReject} className="space-y-4">
+                                    {rejectError && <div className="text-xs text-red-500 font-bold bg-red-50 p-2 rounded border border-red-100">{rejectError}</div>}
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-700 uppercase">ระบุเหตุผลที่ตีกลับ (จำเป็นต้องกรอก)</label>
                                         <textarea 
@@ -1608,10 +1797,32 @@
                                         />
                                     </div>
                                     <div className="flex gap-3 pt-2">
-                                        <button type="button" onClick={() => setRejectModalGroup(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                                        <button type="button" onClick={() => { setRejectModalGroup(null); setRejectError(''); }} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">ยกเลิก</button>
                                         <button type="submit" disabled={isBatchUpdating} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">ยืนยันการตีกลับ</button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 🌟 ป๊อปอัปยืนยันการอนุมัติผ่าน */}
+                    {confirmApproveGroup && (
+                        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setConfirmApproveGroup(null)}></div>
+                            <div className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center border border-slate-200 animate-in zoom-in-95 duration-200">
+                                <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-5 border-[6px] border-white shadow-sm">
+                                    <CheckSquare size={36} />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-800 mb-2">ยืนยันการอนุมัติผ่าน?</h3>
+                                <p className="text-sm text-slate-500 mb-8 font-medium px-4">
+                                    ของ {confirmApproveGroup.responsible}<br/>ประจำเดือน {formatMonth(confirmApproveGroup.month)}<br/><br/>ระบบจะปรับสถานะเป็น: <span className="font-bold text-emerald-600">เสร็จสมบูรณ์</span>
+                                </p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setConfirmApproveGroup(null)} className="flex-1 px-4 py-3.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">ยกเลิก</button>
+                                    <button onClick={executeApprove} disabled={isBatchUpdating} className="flex-1 px-4 py-3.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-500/30 transition-all flex justify-center items-center gap-2 disabled:opacity-50">
+                                        {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <><CheckSquare size={18} /> ยืนยันอนุมัติ</>}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1628,7 +1839,7 @@
                                         </div>
                                         <div>
                                             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                                รายการงาน <StatusBadge status={viewingGroup.status} />
+                                                รายการงาน <StatusBadge status={viewingGroup.status} responsibleName={viewingGroup.responsible} />
                                             </h3>
                                             <p className="text-sm font-medium text-slate-500 mt-1">
                                                 ของ <strong>{viewingGroup.responsible}</strong> ประจำเดือน {formatMonth(viewingGroup.month)} (รวม {viewingGroup.records.length} งาน)
@@ -1731,7 +1942,7 @@
             );
         }
 
-        function Reports({ records, getSortValue, selectedMonth, selectedWeek, timeFilterType, allRecords }) {
+        function Reports({ records, getSortValue, selectedMonth, selectedWeek, timeFilterType, allRecords, loggedInUser }) {
             const [showPreview, setShowPreview] = useState(false);
             const [isExportingExcel, setIsExportingExcel] = useState(false);
             const [exportProgress, setExportProgress] = useState('');
@@ -1789,7 +2000,23 @@
                         return null;
                     };
 
+                    const allCompleted = records.length > 0 && records.every(r => r.status === 'completed');
                     let currentRow = 2;
+                    
+                    if (allCompleted) {
+                        // 🌟 แก้ไข: ดึงวันที่อนุมัติและชื่อคนอนุมัติ จากการกดอนุมัติ "ครั้งล่าสุด (ล่าสุดที่เพิ่งทำ)"
+                        const approvedRecords = [...records].filter(r => r.approveDate).sort((a, b) => new Date(b.approveDate).getTime() - new Date(a.approveDate).getTime());
+                        const approverName = approvedRecords.length > 0 ? approvedRecords[0].approvedBy : '-';
+                        const approveDateRaw = approvedRecords.length > 0 ? approvedRecords[0].approveDate : null;
+                        const approveDate = approveDateRaw ? new Date(approveDateRaw).toLocaleString('th-TH') : '-';
+                        
+                        worksheet.addRow([`สถานะ: Approved | อนุมัติโดย: ${approverName} | วันที่: ${approveDate}`]);
+                        worksheet.mergeCells('A2:E2');
+                        worksheet.getCell('A2').font = { name: 'Tahoma', size: 11, bold: true, color: { argb: 'FF059669' } };
+                        worksheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'left' };
+                        currentRow = 3;
+                    }
+
                     const sortedRecords = [...records].sort((a, b) => getSortValue(a.date, a.createdAt) - getSortValue(b.date, b.createdAt)); 
                     
                     for (let index = 0; index < sortedRecords.length; index++) {
@@ -1924,14 +2151,24 @@
                         selectedWeek={selectedWeek}
                         timeFilterType={timeFilterType}
                         allRecords={allRecords}
+                        loggedInUser={loggedInUser}
                     />
                 )}
                 </div>
             );
         }
 
-        function ReportPreviewModal({ records, getSortValue, onClose, onExportExcel, isExportingExcel, exportProgress, selectedMonth, selectedWeek, timeFilterType, allRecords }) {
+        function ReportPreviewModal({ records, getSortValue, onClose, onExportExcel, isExportingExcel, exportProgress, selectedMonth, selectedWeek, timeFilterType, allRecords, loggedInUser }) {
             const [isPrinting, setIsPrinting] = useState(false);
+
+            const allCompleted = records.length > 0 && records.every(r => r.status === 'completed');
+            const canExport = allCompleted || loggedInUser.role === 'admin';
+            
+            // 🌟 แก้ไข: ดึงวันที่อนุมัติและชื่อคนอนุมัติ จากการกดอนุมัติ "ครั้งล่าสุด (ล่าสุดที่เพิ่งทำ)"
+            const approvedRecords = [...records].filter(r => r.approveDate).sort((a, b) => new Date(b.approveDate).getTime() - new Date(a.approveDate).getTime());
+            const approverName = approvedRecords.length > 0 ? approvedRecords[0].approvedBy : '-';
+            const approveDateRaw = approvedRecords.length > 0 ? approvedRecords[0].approveDate : null;
+            const approveDate = approveDateRaw ? new Date(approveDateRaw).toLocaleString('th-TH') : '-';
 
             const handlePrint = () => {
                 setIsPrinting(true);
@@ -2028,6 +2265,17 @@
                                         {timeFilterType === 'week' && !selectedWeek && selectedMonth && ` ประจำเดือน ${formatMonth(selectedMonth)}`}
                                         {timeFilterType === 'week' && !selectedWeek && !selectedMonth && ` (รายสัปดาห์)`}
                                         {timeFilterType === 'year' && ` (ปีปัจจุบัน)`}
+                                        
+                                        {allCompleted && (
+                                            <div className="text-[13px] text-emerald-600 font-normal mt-2 flex flex-wrap items-center justify-center md:justify-start gap-1.5 bg-emerald-50 inline-flex px-3 py-1 rounded-lg border border-emerald-100">
+                                                <CheckCircle2 size={16} />
+                                                <span><strong>Status:</strong> Approved</span>
+                                                <span className="text-emerald-300 mx-1">|</span>
+                                                <span><strong>Approved by:</strong> {approverName}</span>
+                                                <span className="text-emerald-300 mx-1">|</span>
+                                                <span><strong>Date:</strong> {approveDate}</span>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             </thead>
@@ -2046,86 +2294,92 @@
                                     }
                                 }
 
-                                        return (
-                                            <tbody key={record.id}>
-                                                <tr className="bg-slate-50">
-                                                    <td className="border border-slate-400 p-1.5 text-center align-middle font-bold" rowSpan="8">{i}</td>
-                                                    <td className="border border-slate-400 p-1.5 font-bold">JOB Type :</td>
-                                                    <td className="border border-slate-400 p-1.5 font-semibold text-orange-600 break-words">{record.jobType}</td>
-                                                    <td className="border border-slate-400 p-1.5 text-center font-bold">รูปก่อนทำ</td>
-                                                    <td className="border border-slate-400 p-1.5 text-center font-bold">รูปหลังทำ</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="border border-slate-400 p-1.5 font-bold whitespace-nowrap">Interruption :</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words whitespace-pre-wrap">{record.interruption}</td>
-                                                    <td className="border border-slate-400 p-1 text-center align-middle" rowSpan="7">
-                                                        {record.beforeImage ? (
-                                                            <div className="flex justify-center items-center h-full min-h-[90px]">
-                                                                <img src={getDisplayImageUrl(record.beforeImage)} alt="Before" className="max-h-[110px] max-w-full object-contain rounded-sm" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/110x90?text=Image+Blocked'; }} />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex flex-col items-center justify-center text-slate-300 min-h-[90px]">
-                                                                <ImageIcon size={20} className="mb-1 opacity-50"/>
-                                                                <span className="text-[9px] font-bold tracking-widest uppercase">Insert Image</span>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="border border-slate-400 p-1 text-center align-middle" rowSpan="7">
-                                                        {record.afterImage ? (
-                                                            <div className="flex justify-center items-center h-full min-h-[90px]">
-                                                                <img src={getDisplayImageUrl(record.afterImage)} alt="After" className="max-h-[110px] max-w-full object-contain rounded-sm" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/110x90?text=Image+Blocked'; }} />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex flex-col items-center justify-center text-slate-300 min-h-[90px]">
-                                                                <ImageIcon size={20} className="mb-1 opacity-50"/>
-                                                                <span className="text-[9px] font-bold tracking-widest uppercase">Insert Image</span>
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="border border-slate-400 p-1.5 font-bold">Interruption ID :</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words">{record.interruptionId || '-'}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="border border-slate-400 p-1.5 font-bold">Reason</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words">{record.reason || '-'}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="border border-slate-400 p-1.5 font-bold">Location :</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words">Location: {record.location}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="border border-slate-400 p-1.5 font-bold">Date :</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words">Date: {record.date}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="border border-slate-400 p-1.5 font-bold">Time :</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words">Time: {record.time}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td className="border border-slate-400 p-1.5 font-bold">NSB Responsible :</td>
-                                                    <td className="border border-slate-400 p-1.5 break-words">เจ้าหน้าที่ปฏิบัติงาน : {displayResponsible}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td colSpan="5" className="h-3 border-none"></td>
-                                                </tr>
-                                            </tbody>
-                                        )
-                                    }) : (
-                                        <tbody>
-                                            <tr>
-                                                <td colSpan="5" className="p-10 text-center text-slate-400 border border-dashed border-slate-300">
-                                                    ยังไม่มีข้อมูลการปฏิบัติงาน
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    )}
-                                </table>
-                            </div>
-                        </div>
+                                return (
+                                    <tbody key={record.id}>
+                                        <tr className="bg-slate-50">
+                                            <td className="border border-slate-400 p-1.5 text-center align-middle font-bold" rowSpan="8">{i}</td>
+                                            <td className="border border-slate-400 p-1.5 font-bold">JOB Type :</td>
+                                            <td className="border border-slate-400 p-1.5 font-semibold text-orange-600 break-words">{record.jobType}</td>
+                                            <td className="border border-slate-400 p-1.5 text-center font-bold">รูปก่อนทำ</td>
+                                            <td className="border border-slate-400 p-1.5 text-center font-bold">รูปหลังทำ</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-400 p-1.5 font-bold whitespace-nowrap">Interruption :</td>
+                                            <td className="border border-slate-400 p-1.5 break-words whitespace-pre-wrap">{record.interruption}</td>
+                                            <td className="border border-slate-400 p-1 text-center align-middle" rowSpan="7">
+                                                {record.beforeImage ? (
+                                                    <div className="flex justify-center items-center h-full min-h-[90px]">
+                                                        <img src={getDisplayImageUrl(record.beforeImage)} alt="Before" className="max-h-[110px] max-w-full object-contain rounded-sm" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/110x90?text=Image+Blocked'; }} />
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-slate-300 min-h-[90px]">
+                                                        <ImageIcon size={20} className="mb-1 opacity-50"/>
+                                                        <span className="text-[9px] font-bold tracking-widest uppercase">Insert Image</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="border border-slate-400 p-1 text-center align-middle" rowSpan="7">
+                                                {record.afterImage ? (
+                                                    <div className="flex justify-center items-center h-full min-h-[90px]">
+                                                        <img src={getDisplayImageUrl(record.afterImage)} alt="After" className="max-h-[110px] max-w-full object-contain rounded-sm" onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/110x90?text=Image+Blocked'; }} />
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-slate-300 min-h-[90px]">
+                                                        <ImageIcon size={20} className="mb-1 opacity-50"/>
+                                                        <span className="text-[9px] font-bold tracking-widest uppercase">Insert Image</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-400 p-1.5 font-bold">Interruption ID :</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">{record.interruptionId || '-'}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-400 p-1.5 font-bold">Reason</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">{record.reason || '-'}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-400 p-1.5 font-bold">Location :</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">Location: {record.location}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-400 p-1.5 font-bold">Date :</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">Date: {record.date}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-400 p-1.5 font-bold">Time :</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">Time: {record.time}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="border border-slate-400 p-1.5 font-bold">NSB Responsible :</td>
+                                            <td className="border border-slate-400 p-1.5 break-words">เจ้าหน้าที่ปฏิบัติงาน : {displayResponsible}</td>
+                                        </tr>
+                                        <tr>
+                                            <td colSpan="5" className="h-3 border-none"></td>
+                                        </tr>
+                                    </tbody>
+                                );
+                            }) : (
+                                <tbody>
+                                    <tr>
+                                        <td colSpan="5" className="p-10 text-center text-slate-400 border border-dashed border-slate-300">
+                                            ยังไม่มีข้อมูลการปฏิบัติงาน
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            )}
+                        </table>
+                    </div>
+                </div>
 
-                        <div className="p-4 border-t border-slate-100 flex flex-wrap justify-end gap-3 bg-white">
+                    <div className="p-4 border-t border-slate-100 flex flex-col bg-white">
+                        {!canExport && (
+                            <div className="w-full text-center text-xs text-red-500 font-bold mb-3 p-2 bg-red-50 rounded-lg border border-red-100 flex items-center justify-center gap-1">
+                                <XCircle size={14} /> เอกสารนี้ยังไม่ผ่านการอนุมัติครบถ้วน (Completed) หรือมีรายการที่ยังเป็นแบบร่าง ไม่สามารถดาวน์โหลดหรือพิมพ์ได้ (ยกเว้นสิทธิ์ Admin)
+                            </div>
+                        )}
+                        <div className="flex flex-wrap justify-end gap-3">
                             <button 
                                 onClick={onClose}
                                 className="px-6 py-2.5 text-slate-600 font-bold hover:bg-slate-50 rounded-xl transition-all"
@@ -2134,15 +2388,15 @@
                             </button>
                             <button 
                                 onClick={onExportExcel}
-                                disabled={records.length === 0 || isExportingExcel || isPrinting}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
+                                disabled={records.length === 0 || isExportingExcel || isPrinting || !canExport}
+                                className={`flex items-center gap-2 px-6 py-2.5 text-white font-bold rounded-xl transition-all shadow-lg ${!canExport || records.length === 0 ? 'bg-slate-300 shadow-none cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'}`}
                             >
                                 {isExportingExcel ? <><Loader2 size={18} className="animate-spin" /> {exportProgress}</> : <><Download size={18} /> ดาวน์โหลด Excel (.xlsx)</>} 
                             </button>
                             <button 
                                 onClick={handlePrint}
-                                disabled={records.length === 0 || isExportingExcel || isPrinting}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/30 disabled:opacity-50"
+                                disabled={records.length === 0 || isExportingExcel || isPrinting || !canExport}
+                                className={`flex items-center gap-2 px-6 py-2.5 text-white font-bold rounded-xl transition-all shadow-lg ${!canExport || records.length === 0 ? 'bg-slate-300 shadow-none cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/30'}`}
                             >
                                 {isPrinting ? <Loader2 size={18} className="animate-spin" /> : <Printer size={18} />}
                                 Print / Save as PDF
@@ -2150,8 +2404,9 @@
                         </div>
                     </div>
                 </div>
-            );
-        }
+            </div>
+        );
+    }
 
         function OTForm({ onSave, onClose, initialData, loggedInUser, allRecords }) {
             const [isSmartPaste, setIsSmartPaste] = useState(false);
@@ -2317,9 +2572,15 @@
             const handleImageUpload = async (e, type) => {
                 if (!canEdit) return;
                 const file = e.target.files[0];
+                
+                // รีเซ็ตค่า input ทันที เพื่อให้เลือกไฟล์เดิมซ้ำได้ในกรณีที่อัปโหลดไม่ผ่าน
+                e.target.value = null; 
+
                 if (!file) return;
 
-                if (GAS_WEBHOOK_URL === 'ใส่_URL_WEB_APP_ของ_GAS_ที่นี่') {
+                console.log("กำลังเตรียมอัปโหลดไฟล์:", file.name, "ประเภท:", type);
+
+                if (GAS_WEBHOOK_URL === 'https://script.google.com/macros/s/AKfycbyvKG9pey53IFNXkk49ZwAtXPTJApW6cI6lJH6mJHDzvo0usUFQT_Z93kmlu1asXkz75A/exec' && GAS_WEBHOOK_URL.includes('ใส่_URL')) {
                     alert('กรุณานำ Web App URL ของ Google Apps Script มาใส่ในบรรทัดที่ 26 ของโค้ดก่อนทำการอัปโหลดรูปภาพ');
                     return;
                 }
@@ -2331,44 +2592,46 @@
                     reader.onload = (event) => {
                         const img = new Image();
                         img.onload = async () => {
-                            // 🌟 อัปเกรดการบีบอัดรูปภาพขั้นสูง (Advanced Image Compression)
-                            const MAX_DIMENSION = 800; // ล็อกขนาดกว้างหรือยาวสูงสุดไม่เกิน 800px
-                            let width = img.width;
-                            let height = img.height;
-                            
-                            // คำนวณสัดส่วนใหม่ (รองรับทั้งรูปแนวตั้งและแนวนอน)
-                            if (width > height) {
-                                if (width > MAX_DIMENSION) {
-                                    height = Math.round(height * (MAX_DIMENSION / width));
-                                    width = MAX_DIMENSION;
-                                }
-                            } else {
-                                if (height > MAX_DIMENSION) {
-                                    width = Math.round(width * (MAX_DIMENSION / height));
-                                    height = MAX_DIMENSION;
-                                }
-                            }
-                            
-                            const canvas = document.createElement('canvas');
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            
-                            // เทพื้นหลังสีขาวป้องกันภาพ PNG ที่มีพื้นหลังใสกลายเป็นสีดำ
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.fillRect(0, 0, width, height);
-                            
-                            // วาดรูปลง Canvas
-                            ctx.drawImage(img, 0, 0, width, height);
-                            
-                            // แปลงเป็น JPEG และลดคุณภาพลงเหลือ 60% (0.6) เพื่อประหยัดพื้นที่สูงสุด โดยที่ตายังมองเห็นชัดเจน
-                            const base64String = canvas.toDataURL('image/jpeg', 0.6);
-                            const base64Data = base64String.split(',')[1];
-                            
                             try {
+                                console.log("กำลังบีบอัดรูปภาพ...");
+                                // 🌟 อัปเกรดการบีบอัดรูปภาพขั้นสูง (Advanced Image Compression)
+                                const MAX_DIMENSION = 800; // ล็อกขนาดกว้างหรือยาวสูงสุดไม่เกิน 800px
+                                let width = img.width;
+                                let height = img.height;
+                                
+                                // คำนวณสัดส่วนใหม่ (รองรับทั้งรูปแนวตั้งและแนวนอน)
+                                if (width > height) {
+                                    if (width > MAX_DIMENSION) {
+                                        height = Math.round(height * (MAX_DIMENSION / width));
+                                        width = MAX_DIMENSION;
+                                    }
+                                } else {
+                                    if (height > MAX_DIMENSION) {
+                                        width = Math.round(width * (MAX_DIMENSION / height));
+                                        height = MAX_DIMENSION;
+                                    }
+                                }
+                                
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                
+                                // เทพื้นหลังสีขาวป้องกันภาพ PNG ที่มีพื้นหลังใสกลายเป็นสีดำ
+                                ctx.fillStyle = '#FFFFFF';
+                                ctx.fillRect(0, 0, width, height);
+                                
+                                // วาดรูปลง Canvas
+                                ctx.drawImage(img, 0, 0, width, height);
+                                
+                                // แปลงเป็น JPEG และลดคุณภาพลงเหลือ 60% (0.6) เพื่อประหยัดพื้นที่สูงสุด
+                                const base64String = canvas.toDataURL('image/jpeg', 0.6);
+                                const base64Data = base64String.split(',')[1];
+                                
+                                console.log("บีบอัดเสร็จสิ้น กำลังส่งข้อมูลไปที่ GAS...");
+
                                 const response = await fetch(GAS_WEBHOOK_URL, {
                                     method: 'POST',
-                                    redirect: 'follow', 
                                     body: JSON.stringify({
                                         action: 'upload_image',
                                         filename: `OT_${type}_${Date.now()}.jpg`,
@@ -2381,6 +2644,7 @@
                                 });
                                 
                                 const textResponse = await response.text();
+                                console.log("GAS ตอบกลับ:", textResponse);
                                 
                                 if (textResponse.trim() === "OK") {
                                      throw new Error("ระบบฝั่ง Google Apps Script ตอบกลับเป็นข้อความธรรมดา (OK) แทนที่จะเป็น URL ของรูปภาพ โปรดตรวจสอบฟังก์ชัน doPost ใน GAS");
@@ -2395,13 +2659,14 @@
                                 }
                                 
                                 if (result && result.success) {
+                                    console.log("อัปโหลดสำเร็จ! URL:", result.url);
                                     setFormData(prev => ({ ...prev, [type]: result.url }));
                                 } else {
                                     alert('อัปโหลดรูปล้มเหลว: ' + (result?.error || 'ไม่ทราบสาเหตุ'));
                                 }
                             } catch (err) {
                                 console.error('Upload API Error:', err);
-                                if (err.message.includes('Failed to fetch')) {
+                                if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
                                     alert(`🚨 การส่งรูปถูกบล็อก (Failed to fetch)\n\nวิธีแก้ไข (ทำที่หน้าเว็บ Google Apps Script):\n1. มุมขวาบน กดปุ่มสีน้ำเงิน 'การทำให้ใช้งานได้' (Deploy)\n2. เลือก 'จัดการการทำให้ใช้งานได้' (Manage deployments)\n3. กดรูป ✏️ ดินสอแก้ไข\n4. สำคัญที่สุด! ตรง 'ผู้มีสิทธิ์เข้าถึง (Who has access)' ต้องเลือกเป็น "ทุกคน (Anyone)" เท่านั้น\n5. กดอัปเดตเวอร์ชันใหม่ แล้วก๊อปปี้ URL (ที่ลงท้ายด้วย /exec) มาใส่ในหน้าเว็บอีกครั้งครับ`);
                                 } else {
                                     alert(`เกิดข้อผิดพลาดในการส่งรูป:\n${err.message}`);
@@ -2410,13 +2675,27 @@
                                 setUploadingState(prev => ({ ...prev, [type]: false }));
                             }
                         };
+                        
+                        img.onerror = (err) => {
+                            console.error("ไม่สามารถโหลดรูปภาพลง Image object ได้", err);
+                            setUploadingState(prev => ({ ...prev, [type]: false }));
+                            alert("ไฟล์รูปภาพนี้ไม่สามารถอ่านได้ กรุณาลองใช้รูปอื่นครับ");
+                        };
+
                         img.src = event.target.result;
                     };
+                    
+                    reader.onerror = (err) => {
+                        console.error("FileReader Error:", err);
+                        setUploadingState(prev => ({ ...prev, [type]: false }));
+                        alert("เกิดข้อผิดพลาดในการอ่านไฟล์จากเครื่องของคุณ");
+                    };
+
                     reader.readAsDataURL(file);
                 } catch (error) {
-                    console.error(error);
+                    console.error("Main Image Upload Error:", error);
                     setUploadingState(prev => ({ ...prev, [type]: false }));
-                    alert('เกิดข้อผิดพลาดในการอ่านไฟล์รูปภาพ');
+                    alert('เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุระหว่างเตรียมรูปภาพ');
                 }
             };
 
