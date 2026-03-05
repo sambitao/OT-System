@@ -338,10 +338,10 @@
                                     <select value={adminTeamFilter} onChange={e => {setAdminTeamFilter(e.target.value); setSelectedUserFilter('');}} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
                                         <option value="">ทุกทีม</option>
                                         <option value="Interruption">ทีม Interruption</option>
-                                        <option value="All Corrective">รวม Corrective (1, 2, 3)</option>
-                                        <option value="Corrective 1">ทีม Corrective 1</option>
-                                        <option value="Corrective 2">ทีม Corrective 2</option>
-                                        <option value="Corrective 3">ทีม Corrective 3</option>
+                                        <option value="All Corrective">รวม Corrective </option>
+                                        <option value="Corrective 1">ทีม Corrective (เก่ง)</option>
+                                        <option value="Corrective 2">ทีม Corrective (บอล)</option>
+                                        <option value="Corrective 3">ทีม Corrective (จิน)</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1">
@@ -633,45 +633,79 @@
                 setEditingRecord(null);
                 setActiveTab('history');
                 
-                // กำหนดสถานะเริ่มต้นเป็นร่าง (Draft) ถ้ายังไม่มี
-                const recordToSave = { ...newRecord, status: newRecord.status || 'draft' };
-                const newId = editingRecord ? editingRecord.id : Date.now().toString();
                 const nowIso = new Date().toISOString();
                 
-                // 🌟 Optimistic Update: อัปเดตหน้าจอให้ผู้ใช้เห็นทันทีก่อนรอ Cloud ตอบกลับ
-                const updatedRecord = { 
-                    ...recordToSave, 
-                    id: newId, 
-                    createdAt: editingRecord ? (editingRecord.createdAt || nowIso) : nowIso,
-                    updatedAt: editingRecord ? nowIso : undefined
-                };
-
+                // 1. กรณี: แก้ไขข้อมูลเดิม (Edit) -> เซฟทับข้อมูลก้อนเดียว
                 if (editingRecord) {
-                    setRecords(prev => prev.map(r => r.id === newId ? updatedRecord : r));
-                    setAllRecords(prev => prev.map(r => r.id === newId ? updatedRecord : r));
-                } else {
-                    setRecords(prev => [updatedRecord, ...prev]);
-                    setAllRecords(prev => [updatedRecord, ...prev]);
-                }
-                
-                if (dbStatus === 'local_only' || !user) {
-                    return; // บันทึกในโหมดจำลองเรียบร้อยแล้ว
-                }
+                    const recordToSave = { 
+                        ...newRecord, 
+                        status: newRecord.status || 'draft',
+                        updatedAt: nowIso 
+                    };
+                    
+                    // Optimistic update
+                    setRecords(prev => prev.map(r => r.id === editingRecord.id ? recordToSave : r));
+                    setAllRecords(prev => prev.map(r => r.id === editingRecord.id ? recordToSave : r));
 
-                setDbStatus('connecting'); 
-                
-                try {
-                    const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records', newId);
-                    if (editingRecord) {
-                        await updateDoc(docRef, { ...recordToSave, updatedAt: nowIso });
-                    } else {
-                        await setDoc(docRef, { ...recordToSave, createdAt: nowIso });
+                    if (user && dbStatus !== 'local_only') {
+                        setDbStatus('connecting'); 
+                        try {
+                            const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records', editingRecord.id);
+                            await updateDoc(docRef, recordToSave);
+                            setDbStatus('connected');
+                        } catch (err) {
+                            console.error("Firebase Save Error:", err);
+                            setDbStatus('local_only');
+                            alert("⚠️ ไม่สามารถบันทึกข้อมูลลง Cloud ได้ (อาจเกิดจากอินเทอร์เน็ตขัดข้อง หรือสิทธิ์ Firebase ถูกบล็อก)\n\nระบบได้ทำการบันทึกข้อมูลแบบ Offline ไว้ในหน้าจอให้ชั่วคราวแล้วครับ");
+                        }
                     }
-                    setDbStatus('connected');
-                } catch (err) {
-                    console.error("Firebase Save Error:", err);
-                    setDbStatus('local_only');
-                    alert("⚠️ ไม่สามารถบันทึกข้อมูลลง Cloud ได้ (อาจเกิดจากอินเทอร์เน็ตขัดข้อง หรือสิทธิ์ Firebase ถูกบล็อก)\n\nระบบได้ทำการบันทึกข้อมูลแบบ Offline ไว้ในหน้าจอให้ชั่วคราวแล้วครับ");
+                } 
+                // 2. กรณี: สร้างงานใหม่ (Create) -> ทำการแยกร่าง (Auto-Split) ให้แต่ละคน
+                else {
+                    // ดึงชื่อทุกคนที่พิมพ์มาแยกด้วยลูกน้ำ (,)
+                    let rawArray = newRecord.responsible.split(',').map(name => name.trim()).filter(name => name !== '');
+                    if (rawArray.length === 0) rawArray = [loggedInUser.displayName]; // ถ้าลืมใส่ชื่อ ให้ใช้ชื่อคนล็อกอิน
+                    
+                    const namesToCreate = [...new Set(rawArray)]; // ลบชื่อที่ซ้ำกัน
+                    
+                    // สร้าง ID งานร่วมกัน เพื่อให้ระบบรู้ว่าเป็นงานเดียวกัน
+                    const sharedInterruptionId = (newRecord.interruptionId && newRecord.interruptionId !== '-') 
+                        ? newRecord.interruptionId 
+                        : ('AUTO-' + Math.floor(Math.random() * 1000000));
+
+                    // สร้างข้อมูลบิลของแต่ละคน
+                    const newRecordsToSave = namesToCreate.map((personName, idx) => ({
+                        ...newRecord,
+                        id: Date.now().toString() + '_' + Math.floor(Math.random() * 10000) + '_' + idx,
+                        interruptionId: sharedInterruptionId,
+                        responsible: personName, // แยกชื่อเป็นของใครของมัน
+                        status: 'draft',
+                        createdAt: nowIso
+                    }));
+
+                    // คัดเลือกเฉพาะบิลของคุณมาโชว์ในหน้าจอทันที (ส่วนของเพื่อนจะไปโชว์ที่หน้าจอเพื่อน)
+                    const myNewRecords = newRecordsToSave.filter(r => {
+                        if (loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') return true;
+                        return isUserMatch(r.responsible, loggedInUser);
+                    });
+
+                    setRecords(prev => [...myNewRecords, ...prev]);
+                    setAllRecords(prev => [...newRecordsToSave, ...prev]);
+
+                    if (user && dbStatus !== 'local_only') {
+                        setDbStatus('connecting'); 
+                        try {
+                            for (const rec of newRecordsToSave) {
+                                const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records', rec.id);
+                                await setDoc(docRef, rec);
+                            }
+                            setDbStatus('connected');
+                        } catch (err) {
+                            console.error("Firebase Save Error:", err);
+                            setDbStatus('local_only');
+                            alert("⚠️ เกิดข้อผิดพลาดในการบันทึกข้อมูลลง Cloud");
+                        }
+                    }
                 }
             };
 
@@ -1416,7 +1450,14 @@
             const draftRecords = records.filter(r => !r.status || r.status === 'draft' || r.status === 'rejected');
             const canSubmit = timeFilterType === 'month' && selectedMonth && draftRecords.length > 0 && loggedInUser.role !== 'admin' && loggedInUser.role !== 'approver2';
 
+            // 🌟 คำนวณจำนวนงานที่รูปยังไม่ครบ (ต้องมีทั้งก่อนและหลัง)
+            const missingImagesCount = draftRecords.filter(r => !r.beforeImage || !r.afterImage).length;
+
             const handleSubmitOT = () => {
+                if (missingImagesCount > 0) {
+                    alert("ไม่สามารถส่งขออนุมัติได้: กรุณาอัปโหลดรูปภาพ (ก่อนทำและหลังทำ) ให้ครบทุกงานก่อนครับ");
+                    return;
+                }
                 setShowConfirmModal(true); // 🌟 เปลี่ยนจากการใช้ confirm() มาเป็นการเปิดป๊อปอัป
             };
 
@@ -1587,12 +1628,17 @@
                             <div>
                                 <h4 className="font-bold text-lg">เตรียมส่งขออนุมัติรายเดือน</h4>
                                 <p className="text-sm opacity-80 font-medium">มีข้อมูล {draftRecords.length} รายการ ประจำเดือน {formatMonth(selectedMonth)} ที่พร้อมส่งให้หัวหน้าพิจารณา</p>
+                                {missingImagesCount > 0 && (
+                                    <p className="text-xs text-red-600 font-bold mt-2 flex items-center gap-1.5 bg-red-50/80 px-2.5 py-1.5 rounded-lg border border-red-200 w-fit">
+                                        <XCircle size={14} /> ล็อกการส่ง: มี {missingImagesCount} งานที่ยังใส่รูปไม่ครบ 2 รูป
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <button 
                             onClick={handleSubmitOT}
-                            disabled={isBatchUpdating}
-                            className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:shadow-none"
+                            disabled={isBatchUpdating || missingImagesCount > 0}
+                            className={`w-full sm:w-auto px-8 py-3.5 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${isBatchUpdating || missingImagesCount > 0 ? 'bg-slate-400 shadow-none cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/30'}`}
                         >
                             {isBatchUpdating ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                             ส่งข้อมูลให้หัวหน้า
@@ -2509,19 +2555,21 @@
                 const finalInterruptionId = newId || ('AUTO-' + Math.floor(Math.random() * 1000000));
                 const finalInterruption = newInterruption || 'ไม่ระบุรายละเอียดงาน';
 
+                // 🌟 สกัดชื่อเพื่อนร่วมงานจากข้อความ LINE ได้ทั้งหมดแล้ว
+                let finalResponsible = defaultResponsible;
                 const resRegex = /(?:เจ้า\s*หน้า\s*ที่.*|ผู้\s*ป[ฏฎ]ิบัติ\s*งาน|NSB\s*Responsible|ทีมงาน)\s*[:=]\s*([\s\S]*)/i;
                 const resMatch = cleanText.match(resRegex);
-                let responsible = '';
                 if (resMatch && resMatch[1]) {
-                const lines = resMatch[1].split('\n');
-                const validLines = [];
-                for (let line of lines) {
-                    const t = line.trim();
-                    if (t.includes(':') && validLines.length > 0) break;
-                    if (t) validLines.push(t);
+                    const lines = resMatch[1].split('\n');
+                    const validLines = [];
+                    for (let line of lines) {
+                        const t = line.trim();
+                        if (t.includes(':') && validLines.length > 0) break;
+                        if (t) validLines.push(t);
+                    }
+                    finalResponsible = validLines.join(', ').replace(/,,+/g, ',').replace(/,\s*,/g, ',');
                 }
-                responsible = validLines.join(', ').replace(/,,+/g, ',').replace(/,\s*,/g, ',');
-                }
+                if (!finalResponsible) finalResponsible = defaultResponsible;
 
                 const standardTime = newTime.replace(/\./g, ':').toLowerCase();
 
@@ -2561,7 +2609,7 @@
                 location: newLocation || formData.location,
                 date: newDate || formData.date,
                 time: newTime || formData.time,
-                responsible: responsible || formData.responsible,
+                responsible: finalResponsible,
                 duration: duration,
                 jobType: calculateJobType('Interruption', duration)
                 });
@@ -2908,9 +2956,10 @@
                             <input 
                             required
                             type="text"
-                            placeholder="เช่น Arttapon.J"
-                            disabled={!canEdit}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors font-medium disabled:opacity-70"
+                            placeholder="เช่น Arttapon.J, Apiwat.S"
+                            // 🌟 แก้ไข: ถ้าสร้างใหม่พิมพ์เพิ่มได้หลายคน แต่ถ้าแก้ข้อมูลเดิมจะล็อกแก้ไขไม่ได้
+                            disabled={!!initialData && loggedInUser?.role !== 'admin' && loggedInUser?.role !== 'approver2'}
+                            className={`w-full border rounded-xl px-4 py-2.5 text-slate-700 font-medium transition-colors ${!!initialData && loggedInUser?.role !== 'admin' && loggedInUser?.role !== 'approver2' ? 'bg-slate-100 border-slate-200 cursor-not-allowed opacity-80' : 'bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500'}`}
                             value={formData.responsible}
                             onChange={e => setFormData({...formData, responsible: e.target.value})}
                             />
@@ -2926,9 +2975,14 @@
                                 </div>
                             )}
 
-                            {loggedInUser?.role === 'user' && (
+                            {loggedInUser?.role === 'user' && !initialData && (
                             <p className="text-[10px] text-orange-500 font-bold ml-1 pt-1">
-                                * ชื่อด้านบนจะถูกใช้เป็นเงื่อนไขในการค้นหาและแบ่งบิลงานของคุณ
+                                * สามารถใส่ชื่อเพื่อนร่วมงานคั่นด้วยลูกน้ำ (,) ระบบจะสร้างบิลแยกให้แต่ละคนอัตโนมัติ (บิลใครบิลมัน)
+                            </p>
+                            )}
+                            {loggedInUser?.role === 'user' && initialData && (
+                            <p className="text-[10px] text-orange-500 font-bold ml-1 pt-1">
+                                * ชื่อถูกล็อกเป็นของคุณคนเดียว เพื่อป้องกันการแก้ไขข้อมูลทับซ้อนกับเพื่อนร่วมงาน
                             </p>
                             )}
                         </div>
