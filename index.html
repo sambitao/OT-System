@@ -1741,10 +1741,16 @@
                                 }
                             }
 
+                            // 🌟 แยกสิทธิ์การแก้ไข (Edit) และ การลบ (Delete) ให้ยืดหยุ่นขึ้น
                             const isDraftOrRejected = !record.status || record.status === 'draft' || record.status === 'rejected';
+                            const isCompleted = record.status === 'completed'; // เพิ่มเช็คสถานะ Approved
                             const isSelf = isUserMatch(record.responsible, loggedInUser);
                             const isAdmin = loggedInUser.role === 'admin';
-                            const canEditDelete = isAdmin || (isSelf && isDraftOrRejected);
+                            
+                            // ลบได้เฉพาะตอนเป็นร่าง, ตีกลับ หรือเป็น Admin
+                            const canDelete = isAdmin || (isSelf && isDraftOrRejected);
+                            // 🌟 แก้ไขได้ในตอนที่เป็นร่าง, ตีกลับ หรือ "อนุมัติแล้ว (Completed)" ก็แก้ได้
+                            const canEditAction = isAdmin || (isSelf && (isDraftOrRejected || isCompleted));
 
                             return (
                             <tr key={record.id} className="hover:bg-orange-50/50 transition-colors">
@@ -1789,12 +1795,13 @@
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                 <div className="flex justify-end gap-3">
-                                    {canEditDelete ? (
-                                        <>
-                                            <button onClick={() => onEdit(record)} className="text-slate-400 hover:text-orange-500 transition-colors" title="Edit Data / Upload Image"><Edit size={18} /></button>
-                                            <button onClick={() => onDelete(record.id)} className="text-slate-400 hover:text-red-500 transition-colors" title="Delete Data"><Trash2 size={18} /></button>
-                                        </>
-                                    ) : (
+                                    {canEditAction && (
+                                        <button onClick={() => onEdit(record)} className="text-slate-400 hover:text-orange-500 transition-colors" title="Edit Data / Upload Image"><Edit size={18} /></button>
+                                    )}
+                                    {canDelete && (
+                                        <button onClick={() => onDelete(record.id)} className="text-slate-400 hover:text-red-500 transition-colors" title="Delete Data"><Trash2 size={18} /></button>
+                                    )}
+                                    {!canEditAction && !canDelete && (
                                         <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1 justify-end"><Lock size={12}/> Locked</div>
                                     )}
                                 </div>
@@ -2825,7 +2832,8 @@
                 }
             }
 
-            const isLocked = initialData && (initialData.status === 'pending_1' || initialData.status === 'pending_2' || initialData.status === 'completed');
+            // 🌟 ถ้าระบบล็อกจะห้ามแก้ไข (ปรับให้ล็อก "เฉพาะ" ตอน pending_1 และ pending_2 เท่านั้น)
+            const isLocked = initialData && (initialData.status === 'pending_1' || initialData.status === 'pending_2');
             const canEdit = loggedInUser?.role === 'admin' || !isLocked;
 
             const handleImageUpload = async (e, type) => {
