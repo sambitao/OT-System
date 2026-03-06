@@ -250,7 +250,7 @@
                 <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4 animate-in fade-in relative z-10">
                     <div className="flex items-center gap-2">
                         <Filter className="text-orange-500" size={18} />
-                        <h3 className="font-bold text-slate-800 text-sm">Data Filters {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2') && '(Admin View)'}</h3>
+                        <h3 className="font-bold text-slate-800 text-sm">Data Filters {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2' || loggedInUser?.role === 'approver1') && '(Manager View)'}</h3>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                         <div className="space-y-1">
@@ -297,26 +297,37 @@
 
                         {timeFilterType !== 'month' && timeFilterType !== 'week' && <div className="hidden lg:block"></div>}
 
-                        {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2') && (
+                        {/* 🌟 ปลดล็อกให้ Approver 1 เห็น Filter บุคคลและ Job Type ด้วย */}
+                        {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2' || loggedInUser?.role === 'approver1') && (
                             <>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase">Team Filter</label>
-                                    <select value={adminTeamFilter} onChange={e => {setAdminTeamFilter(e.target.value); setSelectedUserFilter('');}} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                        <option value="">All Teams</option>
-                                        <option value="Interruption">Interruption</option>
-                                        <option value="All Corrective">All Corrective</option>
-                                        <option value="Corrective 1">Corrective 1</option>
-                                        <option value="Corrective 2">Corrective 2</option>
-                                        <option value="Corrective 3">Corrective 3</option>
-                                    </select>
-                                </div>
+                                {/* กรองระดับทีม ให้เฉพาะ Admin และ Approver 2 */}
+                                {(loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2') && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase">Team Filter</label>
+                                        <select value={adminTeamFilter} onChange={e => {setAdminTeamFilter(e.target.value); setSelectedUserFilter('');}} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
+                                            <option value="">All Teams</option>
+                                            <option value="Interruption">Interruption</option>
+                                            <option value="All Corrective">All Corrective</option>
+                                            <option value="Corrective 1">Corrective 1</option>
+                                            <option value="Corrective 2">Corrective 2</option>
+                                            <option value="Corrective 3">Corrective 3</option>
+                                        </select>
+                                    </div>
+                                )}
+                                
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase">Staff</label>
                                     <select value={selectedUserFilter} onChange={e => setSelectedUserFilter(e.target.value)} className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-medium py-2 px-3 rounded-xl focus:ring-2 focus:ring-orange-500/20 text-sm outline-none cursor-pointer">
-                                        <option value="">Everyone</option>
+                                        <option value="">Everyone {loggedInUser?.role === 'approver1' ? 'in My Team' : ''}</option>
                                         {Object.values(APP_USERS)
                                             .filter(u => {
                                                 if (u.role !== 'user' && u.role !== 'approver1') return false;
+                                                
+                                                // ถ้าเป็น Approver 1 ให้แสดงเฉพาะลูกทีมตัวเอง
+                                                if (loggedInUser.role === 'approver1') {
+                                                    return u.team === loggedInUser.approveTeam;
+                                                }
+                                                
                                                 if (!adminTeamFilter) return true;
                                                 if (adminTeamFilter === 'All Corrective') {
                                                     return u.team && u.team.startsWith('Corrective');
@@ -538,7 +549,8 @@
                 }
 
                 let userMatch = true;
-                if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') && selectedUserFilter) {
+                // 🌟 อัปเดตเงื่อนไขให้ครอบคลุม approver1 ด้วย
+                if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2' || loggedInUser.role === 'approver1') && selectedUserFilter) {
                     const filteredUserObj = APP_USERS[selectedUserFilter];
                     userMatch = filteredUserObj ? isUserMatch(r.responsible, filteredUserObj) : false;
                 }
@@ -554,7 +566,8 @@
                 }
 
                 let jobTypeMatch = true;
-                if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') && adminJobTypeFilter) {
+                // 🌟 อัปเดตเงื่อนไขให้ครอบคลุม approver1 ด้วย
+                if ((loggedInUser.role === 'admin' || loggedInUser.role === 'approver2' || loggedInUser.role === 'approver1') && adminJobTypeFilter) {
                     jobTypeMatch = r.jobType?.includes(adminJobTypeFilter);
                 }
 
@@ -1278,6 +1291,64 @@
         function Dashboard({ stats, recentRecords, onSetTab, dbStatus, loggedInUser, allRecords, getRecordDateObj, getTeamFromResponsible }) {
             
             const isAdminOrApprover2 = loggedInUser?.role === 'admin' || loggedInUser?.role === 'approver2';
+            const [isCleaning, setIsCleaning] = useState(false); 
+
+            // 🌟 คำนวณประมาณการพื้นที่ที่ใช้ไป (Estimated Size)
+            const estimatedDatabaseSizeMB = React.useMemo(() => {
+                if (!allRecords || allRecords.length === 0) return 0;
+                try {
+                    const jsonString = JSON.stringify(allRecords);
+                    // คำนวณขนาดเป็น bytes (ตัวอักษรละประมาณ 1 byte สำหรับภาษาอังกฤษ, แต่อาจจะถึง 3-4 bytes สำหรับภาษาไทย/Base64)
+                    // เราใช้การประมาณจากความยาว string โดยเผื่อ overhead เล็กน้อย
+                    const sizeInBytes = new Blob([jsonString]).size; 
+                    const sizeInMB = sizeInBytes / (1024 * 1024);
+                    return sizeInMB.toFixed(2);
+                } catch (e) {
+                    console.error("Error calculating size:", e);
+                    return 0;
+                }
+            }, [allRecords]);
+
+            // คำนวณเปอร์เซ็นต์การใช้งาน (โควต้าฟรี 1GB = 1024MB)
+            const quotaLimitMB = 1024;
+            const usagePercentage = ((estimatedDatabaseSizeMB / quotaLimitMB) * 100).toFixed(2);
+
+            const handleCleanupOldData = async () => {
+                const cutoffDate = new Date();
+                cutoffDate.setMonth(cutoffDate.getMonth() - 18);
+
+                const recordsToDelete = allRecords.filter(r => {
+                    const recordDate = new Date(r.createdAt || r.date);
+                    return recordDate < cutoffDate;
+                });
+
+                if (recordsToDelete.length === 0) {
+                    alert("No old records found.\n(ไม่มีข้อมูลที่อายุเกิน 1 ปี 6 เดือนในระบบครับ)");
+                    return;
+                }
+
+                const confirmMsg = `⚠️ DATABASE MAINTENANCE ⚠️\n\nFound ${recordsToDelete.length} records older than 18 months.\nAre you sure you want to permanently delete them to free up space?\n(พบข้อมูลเก่าจำนวน ${recordsToDelete.length} รายการ ยืนยันที่จะลบทิ้งเพื่อคืนพื้นที่ให้ระบบหรือไม่? การกระทำนี้ไม่สามารถกู้คืนได้)`;
+                
+                if (!window.confirm(confirmMsg)) return;
+
+                setIsCleaning(true);
+                let successCount = 0;
+                let failCount = 0;
+
+                for (const record of recordsToDelete) {
+                    try {
+                        const docRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'ot_records', record.id);
+                        await deleteDoc(docRef);
+                        successCount++;
+                    } catch (err) {
+                        console.error("Failed to delete record:", record.id, err);
+                        failCount++;
+                    }
+                }
+
+                setIsCleaning(false);
+                alert(`✅ Cleanup Complete!\nSuccessfully deleted: ${successCount} records.\nFailed: ${failCount}\n\n(ล้างข้อมูลเก่าเรียบร้อย คืนพื้นที่ให้ Firebase แล้วครับ)`);
+            };
 
             const monthlyChartData = React.useMemo(() => {
                 if (!isAdminOrApprover2 || !allRecords || allRecords.length === 0) return [];
@@ -1471,28 +1542,61 @@
                     </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white flex flex-col justify-between shadow-xl shadow-orange-500/20">
-                    <div>
-                        <h3 className="text-xl font-bold mb-2">Cloud Sync Status</h3>
-                        {dbStatus === 'local_only' ? (
-                        <div className="bg-white/10 p-3 rounded-xl mt-3 border border-orange-300/50">
-                            <p className="text-xs font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-1"><HardDrive size={12}/> Local Storage Mode</p>
-                            <p className="text-xs text-orange-50 opacity-90 leading-relaxed">
-                            System is running in offline mode. Data will sync when connected to the server.
-                            </p>
+                    <div className="flex flex-col gap-4">
+                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white flex flex-col justify-between shadow-xl shadow-orange-500/20 flex-1">
+                            <div>
+                                <h3 className="text-xl font-bold mb-2">Cloud Sync Status</h3>
+                                {dbStatus === 'local_only' ? (
+                                <div className="bg-white/10 p-3 rounded-xl mt-3 border border-orange-300/50">
+                                    <p className="text-xs font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-1"><HardDrive size={12}/> Local Storage Mode</p>
+                                    <p className="text-xs text-orange-50 opacity-90 leading-relaxed">
+                                    System is running in offline mode. Data will sync when connected to the server.
+                                    </p>
+                                </div>
+                                ) : (
+                                <p className="text-orange-100 text-sm opacity-90 leading-relaxed font-medium">
+                                    System is synced with Firebase. Ready for cross-device usage and LINE Bot integration.
+                                </p>
+                                )}
+                            </div>
+                            <div className="mt-6 flex gap-2">
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${dbStatus === 'connected' ? 'bg-orange-700/50 border-orange-400/30' : 'bg-slate-700/50 border-slate-400/50'}`}>
+                                    <Cloud size={16} className={dbStatus === 'connected' ? "text-orange-200" : "text-white"} />
+                                    <span className="text-xs text-white font-bold">{dbStatus === 'connected' ? 'Cloud Sync Active' : 'Offline Mode'}</span>
+                                </div>
+                            </div>
                         </div>
-                        ) : (
-                        <p className="text-orange-100 text-sm opacity-90 leading-relaxed font-medium">
-                            System is synced with Firebase. Ready for cross-device usage and LINE Bot integration.
-                        </p>
+
+                        {loggedInUser?.role === 'admin' && (
+                            <div className="bg-red-50 border border-red-200 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
+                                <div>
+                                    <h3 className="text-red-800 font-bold mb-1 flex items-center gap-2"><Trash2 size={18}/> Database Maintenance</h3>
+                                    
+                                    {/* 🌟 แสดงข้อมูลพื้นที่เก็บข้อมูล */}
+                                    <div className="bg-white rounded-xl p-3 my-3 border border-red-100">
+                                        <div className="flex justify-between items-center mb-1.5 text-xs">
+                                            <span className="font-bold text-slate-600">Estimated Space Used:</span>
+                                            <span className="font-black text-red-600">{estimatedDatabaseSizeMB} MB / 1,024 MB</span>
+                                        </div>
+                                        <div className="w-full bg-slate-100 rounded-full h-2 mb-1 overflow-hidden">
+                                            <div className="bg-red-500 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(usagePercentage, 100)}%` }}></div>
+                                        </div>
+                                        <div className="text-[10px] text-right text-slate-400 font-medium">Usage: {usagePercentage}% of Free Quota</div>
+                                    </div>
+
+                                    <p className="text-red-600 text-[11px] font-medium opacity-90 leading-relaxed mb-4">
+                                        Clear old records (> 18 months) to free up the 1GB Firebase limit.
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={handleCleanupOldData}
+                                    disabled={isCleaning || dbStatus === 'local_only'}
+                                    className="w-full py-2.5 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-600/30 hover:bg-red-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+                                >
+                                    {isCleaning ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : <><Trash2 size={16} /> Delete Old Records</>}
+                                </button>
+                            </div>
                         )}
-                    </div>
-                    <div className="mt-6 flex gap-2">
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${dbStatus === 'connected' ? 'bg-orange-700/50 border-orange-400/30' : 'bg-slate-700/50 border-slate-400/50'}`}>
-                            <Cloud size={16} className={dbStatus === 'connected' ? "text-orange-200" : "text-white"} />
-                            <span className="text-xs text-white font-bold">{dbStatus === 'connected' ? 'Cloud Sync Active' : 'Offline Mode'}</span>
-                        </div>
-                    </div>
                     </div>
                 </div>
                 </div>
@@ -1527,8 +1631,11 @@
             if (responsibleName) {
                 const team = getTeamFromResponsible(responsibleName);
                 const approver = Object.values(APP_USERS).find(u => u.role === 'approver1' && u.approveTeam === team);
-                if (approver) {
+                
+                if (approver && approver.displayName !== responsibleName) {
                     approverName = approver.displayName;
+                } else if (approver && approver.displayName === responsibleName) {
+                     approverName = "Teerapong"; 
                 }
             }
 
@@ -2133,13 +2240,20 @@
                     titleCell.font = { name: 'Tahoma', size: 14, bold: true };
                     titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
                     
-                    const fetchImageBase64 = async (url) => {
-                        if (!url) return null;
-                        if (url.startsWith('data:image')) return url; 
+                    // 🌟 แก้ไข: ฟังก์ชันสำหรับเตรียม Base64 สำหรับ Excel
+                    const fetchImageBase64 = async (urlOrBase64) => {
+                        if (!urlOrBase64) return null;
                         
+                        // 1. ถ้าข้อมูลเป็น Base64 ที่ฝังมาอยู่แล้ว (แบบใหม่) ให้ใช้ได้เลย
+                        if (urlOrBase64.startsWith('data:image')) {
+                            return urlOrBase64; 
+                        }
+                        
+                        // 2. ถ้าเป็น URL ของ Google Drive (แบบเก่า) ให้ยิงไปดึงจาก GAS เหมือนเดิม
                         try {
-                            const urlObj = new URL(url);
-                            const fileId = urlObj.searchParams.get('id');
+                            const urlObj = new URL(urlOrBase64);
+                            const fileId = urlObj.searchParams.get('id') || urlOrBase64.split('/d/')[1]?.split('/')[0];
+                            
                             if (!fileId) return null;
 
                             const response = await fetch(GAS_WEBHOOK_URL, {
@@ -2315,7 +2429,8 @@
             const [isPrinting, setIsPrinting] = useState(false);
 
             const allCompleted = records.length > 0 && records.every(r => r.status === 'completed');
-            const canExport = allCompleted || loggedInUser.role === 'admin';
+            // 🌟 ให้สิทธิ์ Manager (Approver 1, Approver 2, Admin) Export เอกสารได้เสมอ
+            const canExport = allCompleted || loggedInUser.role === 'admin' || loggedInUser.role === 'approver1' || loggedInUser.role === 'approver2';
             
             const approvedRecords = [...records].filter(r => r.approveDate).sort((a, b) => new Date(b.approveDate).getTime() - new Date(a.approveDate).getTime());
             const approverName = approvedRecords.length > 0 ? approvedRecords[0].approvedBy : '-';
@@ -2526,7 +2641,7 @@
                     <div className="p-4 border-t border-slate-100 flex flex-col bg-white">
                         {!canExport && (
                             <div className="w-full text-center text-xs text-red-500 font-bold mb-3 p-2 bg-red-50 rounded-lg border border-red-100 flex items-center justify-center gap-1">
-                                <XCircle size={14} /> Cannot export: Some records are still in Draft or Pending status (Admin bypass allowed).
+                                <XCircle size={14} /> Cannot export: Some records are still in Draft or Pending status (Manager bypass allowed).
                             </div>
                         )}
                         <div className="flex flex-wrap justify-end gap-3">
@@ -2721,10 +2836,7 @@
 
                 if (!file) return;
 
-                if (GAS_WEBHOOK_URL === 'https://script.google.com/macros/s/AKfycbyvKG9pey53IFNXkk49ZwAtXPTJApW6cI6lJH6mJHDzvo0usUFQT_Z93kmlu1asXkz75A/exec' && GAS_WEBHOOK_URL.includes('ใส่_URL')) {
-                    alert('Please configure Google Apps Script Webhook URL first.');
-                    return;
-                }
+                console.log("Preparing to embed image directly to Firebase:", file.name, "Type:", type);
 
                 setUploadingState(prev => ({ ...prev, [type]: true }));
 
@@ -2732,9 +2844,10 @@
                     const reader = new FileReader();
                     reader.onload = (event) => {
                         const img = new Image();
-                        img.onload = async () => {
+                        img.onload = () => {
                             try {
-                                const MAX_DIMENSION = 800; 
+                                console.log("Compressing image for Firebase storage...");
+                                const MAX_DIMENSION = 600; 
                                 let width = img.width;
                                 let height = img.height;
                                 
@@ -2760,65 +2873,47 @@
                                 
                                 ctx.drawImage(img, 0, 0, width, height);
                                 
-                                const base64String = canvas.toDataURL('image/jpeg', 0.6);
-                                const base64Data = base64String.split(',')[1];
+                                const base64String = canvas.toDataURL('image/jpeg', 0.5);
                                 
-                                const response = await fetch(GAS_WEBHOOK_URL, {
-                                    method: 'POST',
-                                    body: JSON.stringify({
-                                        action: 'upload_image',
-                                        filename: `OT_${type}_${Date.now()}.jpg`,
-                                        mimeType: 'image/jpeg',
-                                        base64: base64Data
-                                    }),
-                                    headers: { 
-                                        'Content-Type': 'text/plain;charset=utf-8'
-                                    }
-                                });
-                                
-                                const textResponse = await response.text();
-                                
-                                if (textResponse.trim() === "OK") {
-                                     throw new Error("Invalid response from GAS.");
+                                const sizeInKB = Math.round((base64String.length * (3/4)) / 1024);
+                                console.log(`Image compressed. Estimated size: ${sizeInKB} KB`);
+
+                                if (sizeInKB > 500) {
+                                    alert(`ภาพมีขนาดใหญ่เกินไป (${sizeInKB} KB) กรุณาใช้ภาพอื่นที่รายละเอียดน้อยกว่านี้ครับ`);
+                                    setUploadingState(prev => ({ ...prev, [type]: false }));
+                                    return;
                                 }
-                                
-                                let result;
-                                try {
-                                    result = JSON.parse(textResponse);
-                                } catch (parseError) {
-                                    throw new Error("Invalid format returned from server.");
-                                }
-                                
-                                if (result && result.success) {
-                                    setFormData(prev => ({ ...prev, [type]: result.url }));
-                                } else {
-                                    alert('Upload failed: ' + (result?.error || 'Unknown error'));
-                                }
+
+                                setFormData(prev => ({ ...prev, [type]: base64String }));
+                                setUploadingState(prev => ({ ...prev, [type]: false }));
+
                             } catch (err) {
-                                console.error('Upload API Error:', err);
-                                alert(`Error uploading image:\n${err.message}`);
-                            } finally {
+                                console.error('Compression Error:', err);
+                                alert(`Error compressing image:\n${err.message}`);
                                 setUploadingState(prev => ({ ...prev, [type]: false }));
                             }
                         };
                         
                         img.onerror = (err) => {
+                            console.error("Cannot load image into Image object", err);
                             setUploadingState(prev => ({ ...prev, [type]: false }));
-                            alert("Cannot read this image file.");
+                            alert("Cannot read this image file. Try another one.");
                         };
 
                         img.src = event.target.result;
                     };
                     
                     reader.onerror = (err) => {
+                        console.error("FileReader Error:", err);
                         setUploadingState(prev => ({ ...prev, [type]: false }));
                         alert("Error reading file from your device.");
                     };
 
                     reader.readAsDataURL(file);
                 } catch (error) {
+                    console.error("Main Image Embed Error:", error);
                     setUploadingState(prev => ({ ...prev, [type]: false }));
-                    alert('Unknown error occurred during upload.');
+                    alert('Unknown error occurred while preparing image.');
                 }
             };
 
