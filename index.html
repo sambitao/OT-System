@@ -104,40 +104,42 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Database Users
+       // Database Users
         const APP_USERS = {
             'admin':       { pass: 'admin1234', role: 'admin', filterName: 'admin', displayName: 'Administrator', team: 'Admin' },
-			'teerapong.t': { pass: 'teerapong.t1234', role: 'approver2', filterName: 'teerapong.t', displayName: 'Teerapong.T', team: 'Admin', email: 'teerapong.t@symphony.net.th' }, // Approve 2
-			'narinsak.s':  { pass: 'narinsak.s1234', role: 'approver1', filterName: 'narinsak.s', displayName: 'Narinsak.S', team: 'Interruption', approveTeam: 'Interruption', email: 'narinsak.s@symphony.net.th' }, // Approve 1
-            
-            'test':        { pass: 'test1234', role: 'user', filterName: 'test', displayName: 'Test.User', team: 'Interruption' },
-
+			'teerapong.t': { pass: 'teerapong.t1234', role: 'approver2', filterName: 'teerapong.t', displayName: 'Teerapong.T', team: 'Admin', email: 'teerapong.t@symphony.net.th' }, 
+			
+            // --- ทีม Interruption ---
+            'narinsak.s':  { pass: 'narinsak.s1234', role: 'approver1', filterName: 'narinsak.s', displayName: 'Narinsak.S', team: 'Interruption', approveTeam: 'Interruption', email: 'narinsak.s@symphony.net.th' }, 
             'noppadol.m':  { pass: 'noppadol.m1234', role: 'user', filterName: 'noppadol.m', displayName: 'Noppadol.M', team: 'Interruption' },
             'arttapon.j':  { pass: 'arttapon.j1234', role: 'user', filterName: 'arttapon.j', displayName: 'Arttapon.J', team: 'Interruption' },
             'phanuwat.p':  { pass: 'phanuwat.p1234', role: 'user', filterName: 'phanuwat.p', displayName: 'Phanuwat.P', team: 'Interruption' },
             'kittipoom.b': { pass: 'kittipoom.b1234', role: 'user', filterName: 'kittipoom.b', displayName: 'Kittipoom.B', team: 'Interruption', aliases: ['kittipoom.p', 'kittipoom.b'] },
             'amnat.s':     { pass: 'amnat.s1234', role: 'user', filterName: 'amnat.s', displayName: 'Amnat.S', team: 'Interruption' },
 			'nattawut.p':  { pass: 'nattawut.p1234', role: 'user', filterName: 'nattawut.p', displayName: 'Nattawut.P', team: 'Interruption' },
-			
-            'apiwat.s':    { pass: 'apiwat.s1234', role: 'approver1', filterName: 'apiwat.s', displayName: 'Apiwat.S', team: 'Corrective 1', approveTeam: 'Corrective 1', email: 'apiwat.s@symphony.net.th' }, // Approve 1
-            'theeti.t':    { pass: 'theeti.t1234', role: 'user', filterName: 'theeti.t', displayName: 'Theeti.T', team: 'Corrective 1' },
+			'nattakarn.p': { pass: 'nattakarn.p1234', role: 'user', filterName: 'nattakarn.p', displayName: 'Nattakarn.P', team: 'Interruption' },
+            'test':        { pass: 'test1234', role: 'user', filterName: 'test', displayName: 'Test.User', team: 'Interruption' },
+            
+            // --- ทีม Corrective 1 ---
+            'apiwat.s':    { pass: 'apiwat.s1234', role: 'approver1', filterName: 'apiwat.s', displayName: 'Apiwat.S', team: 'Corrective 1', approveTeam: 'Corrective 1', email: 'apiwat.s@symphony.net.th' }, 
             'sawanat.u':   { pass: 'sawanat.u1234', role: 'user', filterName: 'sawanat.u', displayName: 'Sawanat.U', team: 'Corrective 1' },
-			'rungrueang.a':{ pass: 'rungrueang.a1234', role: 'user', filterName: 'rungrueang.a', displayName: 'Rungrueang.A', team: 'Corrective 1' },
-			'marttaphum.h':{ pass: 'marttaphum.h1234', role: 'user', filterName: 'marttaphum.h', displayName: 'Marttaphum.H', team: 'Corrective 1' },
+			'rachatat.t':  { pass: 'rachatat.t1234', role: 'user', filterName: 'rachatat.t', displayName: 'Rachatat.T', team: 'Corrective 1' },
+			'natapon.y':   { pass: 'natapon.y1234', role: 'user', filterName: 'natapon.y', displayName: 'Natapon.Y', team: 'Corrective 1' },
             
-			'nattakarn.p': { pass: 'nattakarn.p1234', role: 'approver1', filterName: 'nattakarn.p', displayName: 'Nattakarn.P', team: 'Corrective 2', approveTeam: 'Corrective 2', email: 'nattakarn.p@symphony.net.th' }, // Approve 1
-			'rachatat.t':  { pass: 'rachatat.t1234', role: 'user', filterName: 'rachatat.t', displayName: 'Rachatat.T', team: 'Corrective 2' },
+            // --- ทีม Corrective 2 ---
+			'theeti.t':    { pass: 'theeti.t1234', role: 'approver1', filterName: 'theeti.t', displayName: 'Theeti.T', team: 'Corrective 2', approveTeam: 'Corrective 2', email: 'theeti.t@symphony.net.th' }, 
 			'pasakorn.p':  { pass: 'pasakorn.p1234', role: 'user', filterName: 'pasakorn.p', displayName: 'Pasakorn.P', team: 'Corrective 2' },
-			'natapon.y':   { pass: 'natapon.y1234', role: 'user', filterName: 'natapon.y', displayName: 'Natapon.Y', team: 'Corrective 2' },
 			'kanok.m':     { pass: 'kanok.m1234', role: 'user', filterName: 'kanok.m', displayName: 'Kanok.M', team: 'Corrective 2' },
+			'rungrueang.a':{ pass: 'rungrueang.a1234', role: 'user', filterName: 'rungrueang.a', displayName: 'Rungrueang.A', team: 'Corrective 2' },
+			'marttaphum.h':{ pass: 'marttaphum.h1234', role: 'user', filterName: 'marttaphum.h', displayName: 'Marttaphum.H', team: 'Corrective 2' },
             
-            'prachin.b':   { pass: 'prachin.b1234', role: 'approver1', filterName: 'prachin.b', displayName: 'Prachin.B', team: 'Corrective 3', approveTeam: 'Corrective 3', email: 'prachin.b@symphony.net.th' }, // Approve 1
+            // --- ทีม Corrective 3 ---
+            'prachin.b':   { pass: 'prachin.b1234', role: 'approver1', filterName: 'prachin.b', displayName: 'Prachin.B', team: 'Corrective 3', approveTeam: 'Corrective 3', email: 'prachin.b@symphony.net.th' }, 
             'apisit.p':    { pass: 'apisit.p1234', role: 'user', filterName: 'apisit.p', displayName: 'Apisit.P', team: 'Corrective 3' },
 			'seksan.i':    { pass: 'seksan.i1234', role: 'user', filterName: 'seksan.i', displayName: 'Seksan.I', team: 'Corrective 3' },
 			'akarapon.a':  { pass: 'akarapon.a1234', role: 'user', filterName: 'akarapon.a', displayName: 'Akarapon.A', team: 'Corrective 3' },
 			'yossatorn.y': { pass: 'yossatorn.y1234', role: 'user', filterName: 'yossatorn.y', displayName: 'Yossatorn.Y', team: 'Corrective 3' }
         };
-
         // 🌟 Helper Functions
         const formatMonth = (YYYYMM) => {
             if (!YYYYMM) return 'All Time';
