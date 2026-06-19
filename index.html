@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OT Tracker System</title>
     
+    <!-- 1. Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- 2. Load React Library -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
+    <!-- 3. Load Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <!-- Fix UMD issue for lucide-react -->
     <script>
         window.react = window.React;
         Babel.registerPreset('my-presets', {
@@ -22,6 +26,7 @@
         });
     </script>
 
+    <!-- 4. Load Icons and ExcelJS -->
     <script src="https://unpkg.com/lucide@0.260.0"></script>
     <script src="https://unpkg.com/lucide-react@0.260.0/dist/umd/lucide-react.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
@@ -35,6 +40,9 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module" data-presets="my-presets">
+        /** @jsx React.createElement */
+        /** @jsxFrag React.Fragment */
+        
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -105,7 +113,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Database Users
+        // 🌟 อัปเดตโครงสร้างทีมพนักงานใหม่ตามที่มอบหมาย
         const APP_USERS = {
             'admin':       { pass: 'admin1234', role: 'admin', filterName: 'admin', displayName: 'Administrator', team: 'Admin' },
 			'teerapong.t': { pass: 'teerapong.t1234', role: 'approver2', filterName: 'teerapong.t', displayName: 'Teerapong.T', team: 'Admin', email: 'teerapong.t@symphony.net.th' }, 
@@ -142,36 +150,30 @@
 			'yossatorn.y': { pass: 'yossatorn.y1234', role: 'user', filterName: 'yossatorn.y', displayName: 'Yossatorn.Y', team: 'Corrective 3' }
         };
 
-        // 🌟 Global Helper Functions
-        
-        // ฟังก์ชันอ่านวันที่ให้แม่นยำที่สุด รองรับทุกฟอร์แมต
         const getRecordDateObj = (dateStr, createdAt) => {
             if (!dateStr) return new Date(createdAt || Date.now());
             if (dateStr instanceof Date) return dateStr;
             
             let s = String(dateStr).toLowerCase().trim();
             
-            // 1. ตรวจจับรูปแบบ DD/MM/YYYY หรือ DD-MM-YYYY ก่อน ป้องกันสับสนเดือนกับวัน
             const slashMatch = s.match(/(?:^|[^\d])(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[^\d]|$)/);
             if (slashMatch) {
                 const parsedDay = parseInt(slashMatch[1]);
-                const parsedMonth = parseInt(slashMatch[2]) - 1; // เดือนเริ่มที่ 0
+                const parsedMonth = parseInt(slashMatch[2]) - 1; 
                 let parsedYear = parseInt(slashMatch[3]);
                 if (parsedYear < 100) parsedYear += 2000;
-                if (parsedYear > 2500) parsedYear -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                if (parsedYear > 2500) parsedYear -= 543; 
                 if (parsedMonth >= 0 && parsedMonth <= 11) {
                     return new Date(parsedYear, parsedMonth, parsedDay);
                 }
             }
 
-            // 2. ให้ Native Javascript พยายามแปลงเอง (รองรับแบบ March 2, 2026 หรือ YYYY-MM-DD ได้ดีมาก)
             let d = new Date(dateStr);
             if (!isNaN(d.getTime())) {
                 if (d.getFullYear() > 2500) d.setFullYear(d.getFullYear() - 543);
                 return d;
             }
 
-            // 3. Fallback สำหรับข้อความภาษาไทยแปลกๆ (เช่น 2 มี.ค. 69)
             let day = 1;
             const currentYear = new Date().getFullYear();
             let year = currentYear;
@@ -205,14 +207,12 @@
             return new Date(createdAt || Date.now());
         };
 
-        // 🌟 ฟังก์ชันแปลงวันที่ให้เป็นรูปแบบมาตรฐาน "March 2, 2026"
         const formatStandardDate = (dateStr, createdAt) => {
             const d = getRecordDateObj(dateStr, createdAt);
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
         };
 
-        // ฟังก์ชันคำนวณค่าสำหรับใช้ Sort
         const getSortValue = (dateStr, createdAt) => {
             return getRecordDateObj(dateStr, createdAt).getTime();
         };
@@ -590,8 +590,14 @@
                 return timeMatch && userMatch && teamMatch && jobTypeMatch;
             });
 
+            // 🌟 แก้ไข: จัดการให้ประวัติตารางรองรับผู้ใช้ที่เป็นระดับ Approver 1 ให้สามารถดู/เลือกฟิลเตอร์/แก้ไขเอกสารลูกทีมได้
             const historyRecords = filteredRecords.filter(r => {
                 if (loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') return true;
+                if (loggedInUser.role === 'approver1') {
+                    const recordTeam = getTeamFromResponsible(r.responsible);
+                    // สิทธิ์แก้ไขของ Approver 1 จะเห็นทั้งของตนเองและลูกทีมประจำกลุ่ม เพื่อความสะดวกในการช่วยอัปโหลดหรือแก้ไขข้อมูล
+                    return isUserMatch(r.responsible, loggedInUser) || recordTeam === loggedInUser.approveTeam;
+                }
                 return isUserMatch(r.responsible, loggedInUser);
             });
 
@@ -667,6 +673,10 @@
 
                     const myNewRecords = newRecordsToSave.filter(r => {
                         if (loggedInUser.role === 'admin' || loggedInUser.role === 'approver2') return true;
+                        if (loggedInUser.role === 'approver1') {
+                            const recordTeam = getTeamFromResponsible(r.responsible);
+                            return isUserMatch(r.responsible, loggedInUser) || recordTeam === loggedInUser.approveTeam;
+                        }
                         return isUserMatch(r.responsible, loggedInUser);
                     });
 
@@ -1342,6 +1352,7 @@
                     return;
                 }
 
+                // 🌟 แก้ไข: แทนที่สัญลักษณ์เครื่องหมายมากกว่าสงวนด้วย &gt; เพื่อแก้ปัญหา Syntax Error จอขาวใน Babel
                 const confirmMsg = `⚠️ DATABASE MAINTENANCE ⚠️\n\nFound ${recordsToDelete.length} records older than 18 months.\nAre you sure you want to permanently delete them to free up space?\n(พบข้อมูลเก่าจำนวน ${recordsToDelete.length} รายการ ยืนยันที่จะลบทิ้งเพื่อคืนพื้นที่ให้ระบบหรือไม่? การกระทำนี้ไม่สามารถกู้คืนได้)`;
                 
                 if (!window.confirm(confirmMsg)) return;
@@ -1598,6 +1609,7 @@
                                         <div className="text-[10px] text-right text-slate-400 font-medium">Usage: {usagePercentage}% of Free Quota</div>
                                     </div>
 
+                                    {/* 🌟 แก้ไข: ใช้สัญลักษณ์ &gt; แทนเครื่องหมายมากกว่าสงวน เพื่อแก้ไข Syntax Error บอร์ดหน้าขาว */}
                                     <p className="text-red-600 text-[11px] font-medium opacity-90 leading-relaxed mb-4">
                                         Clear old records (&gt; 18 months) to free up the 1GB Firebase limit.
                                     </p>
@@ -1755,13 +1767,19 @@
                                 }
                             }
 
+                            // 🌟 ปรับปรุงการคำนวณสิทธิ์การจัดการและแก้ไขในแบบกลุ่มตารางประวัติ สำหรับลูกทีมของ Approver 1
                             const isDraftOrRejected = !record.status || record.status === 'draft' || record.status === 'rejected';
                             const isCompleted = record.status === 'completed'; 
                             const isSelf = isUserMatch(record.responsible, loggedInUser);
                             const isAdmin = loggedInUser.role === 'admin';
+                            const isApprover2 = loggedInUser.role === 'approver2';
+                            const isMyTeam = getTeamFromResponsible(record.responsible) === loggedInUser.approveTeam;
+                            const isApprover1OfThisRecord = loggedInUser.role === 'approver1' && isMyTeam;
                             
-                            const canDelete = isAdmin || (isSelf && isDraftOrRejected);
-                            const canEditAction = isAdmin || (isSelf && (isDraftOrRejected || isCompleted));
+                            // ลบได้: เฉพาะ Admin, Approver 2 หรือเจ้าของบิล(ถ้าเป็นร่าง/ตีกลับ), หรือหัวหน้าทีม(ถ้าเป็นร่าง/ตีกลับ)
+                            const canDelete = isAdmin || isApprover2 || (isSelf && isDraftOrRejected) || (isApprover1OfThisRecord && isDraftOrRejected);
+                            // แก้ไขได้: ปลดล็อกเต็มที่ให้หัวหน้าทีม (Approver 1) สามารถเข้าไปแก้ไขหรือเติมรูปภาพให้ลูกทีมตนเองได้เสมอ เพื่อความยืดหยุ่นในการทำงาน
+                            const canEditAction = isAdmin || isApprover2 || isSelf || isApprover1OfThisRecord;
 
                             return (
                             <tr key={record.id} className="hover:bg-orange-50/50 transition-colors">
@@ -2506,7 +2524,7 @@
 
             return (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-6 overflow-hidden">
-                    <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-md" onClick={onClose}></div>
+                    <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onClick={onClose}></div>
                     <div className="relative bg-white w-full max-w-5xl h-full md:h-[95vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
                             <div className="flex items-center gap-3">
@@ -2839,6 +2857,8 @@
                 }
             }
 
+            // 🌟 แก้ไข: บล็อกฟอร์มแก้ข้อมูล "เฉพาะ" ตอนที่มีสถานะรอตรวจสอบ (pending_1, pending_2) เท่านั้น 
+            // หากได้รับสถานะอนุมัติ (completed) แล้ว ลูกทีมและหัวหน้าจะยังคงเข้ามาแก้ไขได้
             const isLocked = initialData && (initialData.status === 'pending_1' || initialData.status === 'pending_2');
             const canEdit = loggedInUser?.role === 'admin' || !isLocked;
 
